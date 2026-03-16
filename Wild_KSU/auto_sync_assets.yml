@@ -1,4 +1,4 @@
-name: Auto sync Assets from My-Assets
+name: Auto sync Assets
 on:
   workflow_dispatch: # Chạy thủ công khi bạn muốn cập nhật
 
