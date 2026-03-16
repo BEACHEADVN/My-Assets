@@ -47,7 +47,7 @@ jobs:
           git add manager/app/src/main/res/
           
           # Lấy tên branch hiện tại từ môi trường GitHub
-          CURRENT_BRANCH="${{ github.ref_name }
+          CURRENT_BRANCH="${{ github.ref_name }}
 
           if git diff-index --quiet HEAD; then
             echo "No changes to commit."
