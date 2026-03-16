@@ -1,0 +1,55 @@
+name: Auto sync Assets from My-Assets
+on:
+  workflow_dispatch: # Chạy thủ công khi bạn muốn cập nhật
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Current Branch
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 giúp tránh các lỗi về lịch sử git khi push
+          fetch-depth: 0
+      - name: Checkout My-Assets
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/My-Assets
+          path: my_assets_temp
+
+      - name: Replace Resources
+        run: |
+          # Đường dẫn nguồn và đích
+          SOURCE_DIR="my_assets_temp/Wild_KSU/res"
+          DEST_DIR="manager/app/src/main/res"
+
+          # Kiểm tra xem thư mục nguồn có tồn tại không
+          if [ -d "$SOURCE_DIR" ]; then
+            echo "Đang sao chép tài nguyên từ $SOURCE_DIR vào $DEST_DIR..."
+            
+            # Sử dụng -R để copy thư mục và -f để ghi đè các file trùng tên
+            # Chúng ta copy nội dung bên trong thư mục res của My-Assets
+            cp -Rf $SOURCE_DIR/. $DEST_DIR/
+            
+            echo "Thay thế hoàn tất."
+          else
+            echo "Lỗi: Không tìm thấy thư mục nguồn $SOURCE_DIR"
+            exit 1
+          fi
+
+      - name: Clean up
+        run: rm -rf my_assets_temp
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add manager/app/src/main/res/
+          
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: sync custom res assets từ My-Assets"
+            # Sửa dòng này: chỉ định rõ refs/heads/ để Git không nhầm với tag
+            git push origin HEAD:refs/heads/stable
+          fi
