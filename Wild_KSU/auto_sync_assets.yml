@@ -122,11 +122,11 @@ jobs:
       - name: KIỂM TRA KEY
         run: |
           # Đường dẫn nguồn và đích
-          echo "KIỂM TRA MANAGER HASH"
+          echo "••••KIỂM TRA MANAGER HASH"
           cat $(find . -type f -name "manager_hash.h")
-          echo "KIỂM TRA KBUILD"
+          echo "••••KIỂM TRA KBUILD"
           cat $(find . -type f -name "Kbuild")
-          echo "KIỂM TRA build.gradle.kts"
+          echo "••••KIỂM TRA build.gradle.kts"
           cat $(find . -type f -name "build.gradle.kts")
-          echo "KIỂM TRA setup.sh"
+          echo "••••KIỂM TRA setup.sh"
           cat $(find . -type f -name "setup.sh")
