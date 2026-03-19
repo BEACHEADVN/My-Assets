@@ -77,6 +77,24 @@ jobs:
           else
           echo "[!] Không tìm thấy $OLD_ID. Kiểm tra lại file hoặc khoảng trắng."
           fi
+          echo "=== Đang đổi tên App thành Ayaka ==="
+
+          # Tìm tất cả file strings.xml trong các thư mục values, values-vi, values-zh...
+          # Sau đó thay thế nội dung trong tag app_name
+          find manager/app/src/main/res/ -name "strings.xml" | xargs sed -i 's/>Wild KSU</>Ayaka</g'
+
+          # Kiểm tra lại kết quả tại file mặc định
+          echo "--- Kết quả sau khi đổi tên ---"
+          grep "app_name" manager/app/src/main/res/values/strings.xml || echo "Không tìm thấy tag app_name"
+          echo "=== Đang sửa tên file APK đầu ra trong build.gradle.kts ==="
+          # Tìm và thay thế Wild_KSU thành Ayaka trong thiết lập outputFileName
+          sed -i 's/output.outputFileName = "Wild_KSU_/output.outputFileName = "Ayaka_/g' manager/app/build.gradle.kts
+          # Kiểm tra lại kết quả
+          grep "output.outputFileName" manager/app/build.gradle.kts
+
+          sed -i 's/OWNER="WildKernels"/OWNER="BEACHEADVN"/g' kernel/setup.sh
+          sed -i 's/REPO="Wild_KSU"/REPO="Ayaka"/g' kernel/setup.sh
+          echo "Đã cập nhật setup.sh sang OWNER=BEACHEADVN và REPO=Ayaka"
 
       - name: Clean up
         run: rm -rf my_assets_temp
@@ -104,10 +122,11 @@ jobs:
       - name: KIỂM TRA KEY
         run: |
           # Đường dẫn nguồn và đích
-          echo "TÌM MANAGER HASH"
+          echo "KIỂM TRA MANAGER HASH"
           cat $(find . -type f -name "manager_hash.h")
-          echo "TÌM KBUILD"
+          echo "KIỂM TRA KBUILD"
           cat $(find . -type f -name "Kbuild")
-          echo "TÌM build.gradle.kts"
+          echo "KIỂM TRA build.gradle.kts"
           cat $(find . -type f -name "build.gradle.kts")
-          
+          echo "KIỂM TRA setup.sh"
+          cat $(find . -type f -name "setup.sh")
