@@ -1,0 +1,3 @@
+Ở chức năng     - name: Extract Sublevel and Set File Name
+thêm COMMIT_HASH=$(git rev-parse --short HEAD)
+chỉnh tên thành FILE_NAME="Ayaka_$KERNEL_VERSION.$SUBLEVEL-$ANDROID_VERSION-$OS_PATCH_LEVEL${{ inputs.variant && format('-{0}', inputs.variant) || '' }}-$COMMIT_HASH"
