@@ -88,7 +88,7 @@ jobs:
           grep "app_name" manager/app/src/main/res/values/strings.xml || echo "Không tìm thấy tag app_name"
           echo "=== Đang sửa tên file APK đầu ra trong build.gradle.kts ==="
           # Tìm và thay thế Wild_KSU thành Ayaka trong thiết lập outputFileName
-          sed -i 's/output.outputFileName = "Wild_KSU_/output.outputFileName = "Ayaka_/g' manager/app/build.gradle.kts
+          sed -i 's/output.outputFileName = "Wild_KSU_/output.outputFileName = "Ayaka_Manager_/g' manager/app/build.gradle.kts
           # Kiểm tra lại kết quả
           grep "output.outputFileName" manager/app/build.gradle.kts
 
