@@ -1,0 +1,25 @@
+name: Auto Sync Upstream Tags
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync-tags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Fork
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          # Dùng Token bạn vừa tạo để có quyền can thiệp workflow
+          token: ${{ secrets.MY_SYNC_TOKEN }}
+
+      - name: Sync Tags from Upstream
+        run: |
+          git remote add upstream https://github.com/WildKernels/Wild_KSU.git || true
+          git fetch upstream --tags
+          
+          # Đẩy tag lên bằng token đã được cấp quyền workflow
+          git push origin --tags
