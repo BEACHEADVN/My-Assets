@@ -95,6 +95,11 @@ jobs:
           sed -i 's/OWNER="WildKernels"/OWNER="BEACHEADVN"/g' kernel/setup.sh
           sed -i 's/REPO="Wild_KSU"/REPO="Ayaka"/g' kernel/setup.sh
           echo "Đã cập nhật setup.sh sang OWNER=BEACHEADVN và REPO=Ayaka"
+          
+          cd ./manager
+          ls
+          sed -i 's/Wild_KSU/Ayaka_Manager/g' spoof
+
 
       - name: Clean up
         run: rm -rf my_assets_temp
@@ -130,3 +135,7 @@ jobs:
           cat $(find . -type f -name "build.gradle.kts")
           echo "••••KIỂM TRA setup.sh"
           cat $(find . -type f -name "setup.sh")
+          echo "=== spoof ==="
+          find . -name "spoof" -exec cat {} \;
+
+          
