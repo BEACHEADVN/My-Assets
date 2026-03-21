@@ -64,9 +64,13 @@ jobs:
           
       - name: KIỂM TRA SAU KHI PUSH
         run: |
-          echo "=== XÁC NHẬN NỘI DUNG TỪ SERVER ==="
+          echo "=== NỘI DUNG WKSU ACTION.YML==="
           sleep 5
           TARGET_FILE="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/actions/wksu/action.yml"
-          
+          # Kiểm tra xem URL mới đã xuất hiện trên server chưa
+          curl -H "Authorization: token ${{ secrets.GH_PAT }}" -sL $TARGET_FILE
+
+          echo "=== NỘI DUNG BUILD.YML==="
+          TARGET_FILE="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/workflows/build.yml"
           # Kiểm tra xem URL mới đã xuất hiện trên server chưa
           curl -H "Authorization: token ${{ secrets.GH_PAT }}" -sL $TARGET_FILE
