@@ -10,7 +10,7 @@ jobs:
       - name: Checkout Ayaka Repo
         uses: actions/checkout@v4
         with:
-          repository: BEACHEADVN/Ayaka
+          repository: BEACHEADVN/GKI_KernelSU_SUSFS
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
