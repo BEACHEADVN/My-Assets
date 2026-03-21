@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  patch-default-value:
+  patch-default:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Destination Repo
@@ -18,24 +18,27 @@ jobs:
         run: |
           cd remote-repo/.github/workflows/
           
-          # Kiểm tra xem file có tồn tại không trước khi làm
-          ls -R # Lệnh này để bạn nhìn thấy sơ đồ file trong log nếu lỗi
+          # Sử dụng sed để tìm khối kernel_build_version
+          # Lệnh này tìm từ dòng chứa 'kernel_build_version:' 
+          # cho đến dòng 'default:' đầu tiên xuất hiện sau đó.
+          # [[:space:]]* giúp xử lý mọi kiểu thụt lề (tab hoặc space)
           
-          if [ -f "main.yml" ]; then
-            # Sửa lỗi: dùng [[:space:]]* để chấp nhận mọi kiểu khoảng trắng
-            sed -i '/kernel_build_version:/,/default:/s/default:[[:space:]]*custom/default: a13-5-15/' main.yml
-          else
-            echo "❌ Không tìm thấy file main.yml trong $(pwd)"
-            exit 1
-          fi
+          sed -i '/kernel_build_version:/,/default:/s/\(default:[[:space:]]*\)custom/\1a13-5-15/' main.yml
 
-      - name: KIỂM TRA TRƯỚC KHI PUSH
+      - name: KIỂM TRA KẾT QUẢ
         run: |
           cd remote-repo/.github/workflows/
-          echo "=== KIỂM TRA ĐOẠN MÃ ĐÃ SỬA TRONG main.yml ==="
+          echo "=== NỘI DUNG SAU KHI SỬA ==="
+          # Hiển thị khối kernel_build_version để xác nhận
+          grep -A 20 "kernel_build_version:" main.yml
           
-          # Thêm "|| true" để nếu không tìm thấy grep cũng không làm đỏ Workflow
-          grep -A 15 "kernel_build_version:" main.yml | grep "default:" || echo "⚠️ Không tìm thấy dòng default trong khối này"
+          # Kiểm tra xem có đúng là a13-5-15 không
+          if grep -A 20 "kernel_build_version:" main.yml | grep -q "default: a13-5-15"; then
+            echo "✅ Đã đổi thành công!"
+          else
+            echo "❌ Thất bại: Vẫn chưa đổi được giá trị default."
+            exit 1
+          fi
 
       - name: Push Changes
         run: |
@@ -45,10 +48,9 @@ jobs:
           
           git add .github/workflows/main.yml
           
-          # Chỉ push nếu có sự thay đổi
           if git diff-index --quiet HEAD; then
-            echo "Không có thay đổi nào để push (Có thể đã là a13-5-15 rồi)."
+            echo "Không có thay đổi nào để push."
           else
-            git commit -m "chore: change default kernel build version to a13-5-15 in main.yml"
+            git commit -m "chore: update default kernel version to a13-5-15"
             git push origin HEAD
           fi
