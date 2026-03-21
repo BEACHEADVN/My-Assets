@@ -52,4 +52,4 @@ jobs:
         run: |
           cd remote-repo/.github/workflows/
           echo "NỘI DUNG FILE build.yml (Dòng FILE_NAME):"
-          grep -n "FILE_NAME" build.yml
+          grep -n "FILE_NAME" build.yml | grep "Ayaka_"
