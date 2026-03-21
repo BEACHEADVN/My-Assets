@@ -1,0 +1,44 @@
+name: CHỈNH SỬA DEFAULT KERNEL VERSION
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-default-value:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Ayaka Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/Ayaka
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+
+      - name: Thay đổi Default Custom sang a13-5-15
+        run: |
+          cd remote-repo/.github/workflows/
+          
+          # Sử dụng sed với phạm vi (range) để chỉ sửa dòng default nằm trong kernel_build_version
+          # Lệnh này tìm từ dòng "kernel_build_version:" đến dòng "default:" đầu tiên
+          sed -i '/kernel_build_version:/,/default:/s/default: custom/default: a13-5-15/' build.yml
+
+      - name: KIỂM TRA TRƯỚC KHI PUSH
+        run: |
+          cd remote-repo/.github/workflows/
+          echo "=== KIỂM TRA ĐOẠN MÃ ĐÃ SỬA ==="
+          # Hiển thị 15 dòng sau chữ kernel_build_version để xác nhận
+          grep -A 15 "kernel_build_version:" build.yml | grep "default:"
+
+      - name: Push Changes
+        run: |
+          cd remote-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .github/workflows/build.yml
+          if git diff-index --quiet HEAD; then
+            echo "Không có thay đổi nào để push."
+          else
+            git commit -m "chore: change default kernel build version to a13-5-15"
+            git push origin HEAD
+          fi
