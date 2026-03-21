@@ -7,7 +7,7 @@ jobs:
   patch-default-value:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Ayaka Repo
+      - name: Checkout Destination Repo
         uses: actions/checkout@v4
         with:
           repository: BEACHEADVN/GKI_KernelSU_SUSFS
@@ -18,15 +18,21 @@ jobs:
         run: |
           cd remote-repo/.github/workflows/
           
-          # Sử dụng sed với phạm vi (range) để chỉ sửa dòng default nằm trong kernel_build_version
-          # Lệnh này tìm từ dòng "kernel_build_version:" đến dòng "default:" đầu tiên
+          # 1. Kiểm tra xem file main.yml có tồn tại không
+          if [ ! -f "main.yml" ]; then
+            echo "Lỗi: Không tìm thấy file main.yml"
+            exit 1
+          fi
+
+          # 2. Sử dụng sed để tìm khối kernel_build_version và sửa dòng default đầu tiên nó thấy
+          # Lệnh này giới hạn phạm vi tìm kiếm từ 'kernel_build_version:' đến dòng 'default:' tiếp theo
           sed -i '/kernel_build_version:/,/default:/s/default: custom/default: a13-5-15/' main.yml
 
       - name: KIỂM TRA TRƯỚC KHI PUSH
         run: |
           cd remote-repo/.github/workflows/
-          echo "=== KIỂM TRA ĐOẠN MÃ ĐÃ SỬA ==="
-          # Hiển thị 15 dòng sau chữ kernel_build_version để xác nhận
+          echo "=== KIỂM TRA ĐOẠN MÃ ĐÃ SỬA TRONG main.yml ==="
+          # Hiển thị 15 dòng sau từ khóa để xác nhận kết quả
           grep -A 15 "kernel_build_version:" main.yml | grep "default:"
 
       - name: Push Changes
@@ -36,9 +42,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
           git add .github/workflows/main.yml
+          
+          # Chỉ push nếu có sự thay đổi
           if git diff-index --quiet HEAD; then
-            echo "Không có thay đổi nào để push."
+            echo "Không có thay đổi nào để push (Có thể đã là a13-5-15 rồi)."
           else
-            git commit -m "chore: change default kernel build version to a13-5-15"
+            git commit -m "chore: change default kernel build version to a13-5-15 in main.yml"
             git push origin HEAD
           fi
