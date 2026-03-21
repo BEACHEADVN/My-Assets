@@ -20,8 +20,8 @@ jobs:
           
           OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU"
           NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
-          OLD_DIR="working-directory: ${{ github.workspace }}/kernel/Wild_KSU"
-          NEW_DIR="working-directory: ${{ github.workspace }}/kernel/Ayaka"
+          OLD_DIR="Wild_KSU"
+          NEW_DIR="Ayaka"
           
           # Sửa trực tiếp file action.yml
           sed -i "s|$OLD_URL|$NEW_URL|g" action.yml
