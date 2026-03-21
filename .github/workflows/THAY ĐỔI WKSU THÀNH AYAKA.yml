@@ -41,4 +41,5 @@ jobs:
       - name: KIỂM TRA SAU KHI PUSH
         run: |
            echo "TẬP TIN SAU KHI SỬA"
+           sleep 5
            grep -r "https://raw.githubusercontent.com/BEACHEADVN/Ayaka/canary/kernel/setup.sh" .
