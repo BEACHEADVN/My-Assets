@@ -1,19 +1,38 @@
-name: Check Remote FILE_NAME
+name: Patch FILE_NAME to Ayaka
 
 on:
-  workflow_dispatch: # Chạy thủ công để kiểm tra
+  workflow_dispatch: # Chạy thủ công để kiểm tra kết quả
 
 jobs:
-  check-line:
+  patch-file-name:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch and View FILE_NAME line
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/GKI_KernelSU_SUSFS
+          token: ${{ secrets.GH_PAT }} # Yêu cầu PAT có quyền repo
+          path: remote-repo
+
+      - name: Modify and Verify
         run: |
-          # Tải nội dung file build.yml từ repo đích (nhánh main)
-          # Sử dụng link raw để đọc nội dung text trực tiếp
-          URL="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/workflows/build.yml"
+          cd remote-repo/.github/workflows/
           
-          echo "--- Đang tìm dòng chứa FILE_NAME ---"
-          # Lệnh curl lấy nội dung, grep tìm dòng, -n để hiện số thứ tự dòng
-          curl -s $URL | grep "FILE_NAME" | grep "\$KERNEL_VERSION"
-          echo "------------------------------------"
+          echo "--- Nội dung trước khi sửa ---"
+          grep "FILE_NAME" build.yml | grep "\$KERNEL_VERSION"
+          
+          # Lệnh sed tìm dòng chứa FILE_NAME và $KERNEL_VERSION, sau đó chèn Ayaka_ vào trước $KERNEL_VERSION
+          # Dấu \ trước $ để escape biến shell
+          sed -i '/FILE_NAME.*\$KERNEL_VERSION/s/\$KERNEL_VERSION/Ayaka_\$KERNEL_VERSION/' build.yml
+          
+          echo "--- Nội dung sau khi sửa ---"
+          grep "FILE_NAME" build.yml | grep "Ayaka_"
+          
+      - name: Push Changes
+        run: |
+          cd remote-repo/.github/workflows/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add build.yml
+          git commit -m "Rename FILE_NAME prefix to Ayaka" || exit 0
+          git push origin main
