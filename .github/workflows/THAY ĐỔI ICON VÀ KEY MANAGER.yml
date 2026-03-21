@@ -1,4 +1,4 @@
-name: Auto sync Assets
+name: THAY ĐỔI ICON VÀ KEY MANAGER
 on:
   workflow_dispatch: # Chạy thủ công khi bạn muốn cập nhật
 
