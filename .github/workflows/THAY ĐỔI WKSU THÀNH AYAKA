@@ -1,0 +1,42 @@
+name: Patch Setup Script URL
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-setup-url:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/GKI_KernelSU_SUSFS
+          token: ${{ secrets.GH_PAT }} # Đảm bảo PAT này đã có quyền 'workflow'
+          path: remote-repo
+
+      - name: Find and Replace URL
+        run: |
+          cd remote-repo/.github
+          
+          # Định nghĩa URL cũ và URL mới
+          OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU/canary/kernel/setup.sh"
+          NEW_URL="curl -LSs https://raw.githubusercontent.com/BEACHEADVN/Ayaka/canary/kernel/setup.sh"
+          
+          echo "--- Các file có chứa URL cũ ---"
+          grep -r "$OLD_URL" . || echo "Không tìm thấy file nào."
+
+          # Dùng find để quét tất cả các file trong .github và subfolders (như workflows)
+          # Sử dụng '|' làm dấu phân cách trong sed vì URL có chứa '/'
+          find . -type f -exec sed -i "s|$OLD_URL|$NEW_URL|g" {} +
+
+          echo "--- Kiểm tra lại sau khi sửa ---"
+          grep -r "Ayaka" .
+          
+      - name: Push Changes
+        run: |
+          cd remote-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Update setup.sh source to Ayaka" || exit 0
+          git push origin main
