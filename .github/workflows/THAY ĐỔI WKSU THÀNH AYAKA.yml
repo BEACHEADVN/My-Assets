@@ -14,7 +14,7 @@ jobs:
           token: ${{ secrets.GH_PAT }} # Đảm bảo PAT này đã có quyền 'workflow'
           path: remote-repo
 
-      - name: Find and Replace URL
+      - name: TÌM VÀ THAY URL
         run: |
           cd remote-repo/.github
           
@@ -40,5 +40,5 @@ jobs:
           
       - name: KIỂM TRA SAU KHI PUSH
         run: |
-           echo "--- Kiểm tra lại sau khi sửa ---"
+           echo "TẬP TIN SAU KHI SỬA"
            grep -r "https://raw.githubusercontent.com/BEACHEADVN/Ayaka/canary/kernel/setup.sh" .
