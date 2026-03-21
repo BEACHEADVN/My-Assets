@@ -1,5 +1,4 @@
-name: ĐỔI TÊN KERNEL ĐƯỢC BUILD RA
-
+name: LỌC CÁC PHIÊN BẢN KERNEL 5.15 ANDROID 13
 on:
   workflow_dispatch:
 
@@ -14,7 +13,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: ĐỔI TÊN
+      - name: LỌC
         run: |
           cd remote-repo/.github/workflows/
           
