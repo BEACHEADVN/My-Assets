@@ -89,4 +89,4 @@ jobs:
           grep "REPO=" kernel/setup.sh
           echo "•••• APP NAME:"
           grep "app_name" manager/app/src/main/res/values/strings.xml
-          cat ayaka_repo/kernel/setup.sh
+          cat ./ayaka_repo/kernel/setup.sh
