@@ -14,7 +14,7 @@ jobs:
           token: ${{ secrets.GH_PAT }} # Cần quyền 'workflow'
           path: remote-repo
 
-      - name: SỬA TRỰC TIẾP ACTION.YML
+      - name: SỬA WKSU ACTION.YML
         run: |
           cd remote-repo/.github/actions/wksu/
           
@@ -28,6 +28,13 @@ jobs:
           sed -i "s|$OLD_URL|$NEW_URL|g" action.yml
           sed -i "s|$OLD_DIR1|$NEW_DIR|g" action.yml
           sed -i "s|$OLD_DIR2|$NEW_DIR|g" action.yml
+
+      - name: SỬA BUILD.YML
+        run: |
+          cd remote-repo/.github/workflows/
+          OLD="Wild KSU"
+          NEW="Ayaka"
+          sed -i "s|$OLD|$NEW|g" build.yml
 
       - name: Push Changes
         run: |
