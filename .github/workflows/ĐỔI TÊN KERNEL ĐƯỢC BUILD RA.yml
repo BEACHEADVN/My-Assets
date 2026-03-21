@@ -14,7 +14,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: Modify and Verify
+      - name: ĐỔI TÊN
         run: |
           cd remote-repo/.github/workflows/
           
@@ -48,3 +48,8 @@ jobs:
             git push origin main
           fi
           
+      - name: KIỂM TRA
+        run: |
+          cd remote-repo/.github/workflows/
+          echo "NỘI DUNG FILE build.yml (Dòng FILE_NAME):"
+          grep -n "FILE_NAME" build.yml
