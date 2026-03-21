@@ -15,23 +15,19 @@ jobs:
 
       - name: LỌC
         run: |
-          cd remote-repo/.github/workflows/
+          cd remote-repo/
+          FILE_PATH=".github/kernel-config/a13-5.15.json"
           
-          echo "--- Kiểm tra nội dung hiện tại ---"
-          CURRENT_LINE=$(grep "FILE_NAME" build.yml | grep "\$KERNEL_VERSION")
-          echo "Dòng tìm thấy: $CURRENT_LINE"
+          echo "--- Nội dung gốc (3 dòng đầu) ---"
+          head -n 5 $FILE_PATH
           
-          # Kiểm tra nếu dòng KHÔNG chứa chữ "Ayaka" thì mới sửa
-          if [[ "$CURRENT_LINE" != *"Ayaka"* ]]; then
-            echo "Chưa có chữ Ayaka, tiến hành sửa..."
-            sed -i '/FILE_NAME.*\$KERNEL_VERSION/s/\$KERNEL_VERSION/Ayaka_\$KERNEL_VERSION/' build.yml
-            
-            echo "--- Nội dung sau khi sửa ---"
-            grep "FILE_NAME" build.yml | grep "Ayaka_"
-          else
-            echo "Dòng này đã có chữ Ayaka rồi, bỏ qua không sửa nữa."
-          fi
-
+          # Dùng jq để lọc chỉ giữ lại 5.15.170 và 5.15.189
+          # Lệnh này ghi đè trực tiếp vào file tạm rồi chuyển ngược lại file gốc
+          jq '.include |= map(select(.kernel_version | contains("5.15.170") or contains("5.15.189")))' $FILE_PATH > temp.json && mv temp.json $FILE_PATH
+          
+          echo "--- Nội dung sau khi lọc ---"
+          cat $FILE_PATH
+          
       - name: Push Changes
         run: |
           cd remote-repo/.github/workflows/
@@ -49,6 +45,6 @@ jobs:
           
       - name: KIỂM TRA
         run: |
-          cd remote-repo/.github/workflows/
-          echo "NỘI DUNG FILE build.yml (Dòng FILE_NAME):"
-          grep -n "FILE_NAME" build.yml
+          cd remote-repo/.github/kernel-config
+          echo "NỘI DUNG FILE a13-5.15.json"
+          cat a13-5.15.json
