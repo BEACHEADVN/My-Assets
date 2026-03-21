@@ -1,4 +1,4 @@
-name: Patch Setup Script URL
+name: THAY URL WILD KSU THÀNH AYAKA
 
 on:
   workflow_dispatch:
@@ -29,9 +29,6 @@ jobs:
           # Sử dụng '|' làm dấu phân cách trong sed vì URL có chứa '/'
           find . -type f -exec sed -i "s|$OLD_URL|$NEW_URL|g" {} +
 
-          echo "--- Kiểm tra lại sau khi sửa ---"
-          grep -r "https://raw.githubusercontent.com/BEACHEADVN/Ayaka/canary/kernel/setup.sh" .
-          
       - name: Push Changes
         run: |
           cd remote-repo
@@ -40,3 +37,8 @@ jobs:
           git add .
           git commit -m "Update setup.sh source to Ayaka" || exit 0
           git push origin main
+          
+      - name: KIỂM TRA SAU KHI PUSH
+        run: |
+           echo "--- Kiểm tra lại sau khi sửa ---"
+           grep -r "https://raw.githubusercontent.com/BEACHEADVN/Ayaka/canary/kernel/setup.sh" .
