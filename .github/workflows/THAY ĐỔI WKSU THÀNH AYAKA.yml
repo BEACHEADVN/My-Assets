@@ -11,23 +11,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: BEACHEADVN/GKI_KernelSU_SUSFS
-          token: ${{ secrets.GH_PAT }} # Đảm bảo PAT này đã có quyền 'workflow'
+          token: ${{ secrets.GH_PAT }} # Cần quyền 'workflow'
           path: remote-repo
 
-      - name: TÌM VÀ THAY URL
+      - name: SỬA TRỰC TIẾP ACTION.YML
         run: |
-          cd remote-repo/.github
+          cd remote-repo/.github/actions/wksu/
           
-          # Định nghĩa URL cũ và URL mới
           OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU"
           NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
           
-          echo "--- Các file có chứa URL cũ ---"
-          grep -r "$OLD_URL" . || echo "Không tìm thấy file nào."
-
-          # Dùng find để quét tất cả các file trong .github và subfolders (như workflows)
-          # Sử dụng '|' làm dấu phân cách trong sed vì URL có chứa '/'
-          find . -type f -exec sed -i "s|$OLD_URL|$NEW_URL|g" {} +
+          # Sửa trực tiếp file action.yml
+          sed -i "s|$OLD_URL|$NEW_URL|g" action.yml
+          
+          echo "--- Nội dung dòng sau khi sửa ---"
+          grep "BEACHEADVN/Ayaka" action.yml
 
       - name: Push Changes
         run: |
@@ -35,11 +33,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Update setup.sh source to Ayaka" || exit 0
+          git commit -m "Update source URLs in action.yml to Ayaka" || exit 0
           git push origin main
           
       - name: KIỂM TRA SAU KHI PUSH
         run: |
-           echo "TẬP TIN SAU KHI SỬA"
-           sleep 5
-           grep -r "https://raw.githubusercontent.com/BEACHEADVN/Ayaka" .
+          echo "=== XÁC NHẬN NỘI DUNG TỪ SERVER ==="
+          sleep 5
+          TARGET_FILE="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/actions/wksu/action.yml"
+          
+          # Kiểm tra xem URL mới đã xuất hiện trên server chưa
+          curl -H "Authorization: token ${{ secrets.GH_PAT }}" -sL $TARGET_FILE | grep "BEACHEADVN/Ayaka"
