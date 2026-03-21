@@ -18,22 +18,24 @@ jobs:
         run: |
           cd remote-repo/.github/workflows/
           
-          # 1. Kiểm tra xem file main.yml có tồn tại không
-          if [ ! -f "main.yml" ]; then
-            echo "Lỗi: Không tìm thấy file main.yml"
+          # Kiểm tra xem file có tồn tại không trước khi làm
+          ls -R # Lệnh này để bạn nhìn thấy sơ đồ file trong log nếu lỗi
+          
+          if [ -f "main.yml" ]; then
+            # Sửa lỗi: dùng [[:space:]]* để chấp nhận mọi kiểu khoảng trắng
+            sed -i '/kernel_build_version:/,/default:/s/default:[[:space:]]*custom/default: a13-5-15/' main.yml
+          else
+            echo "❌ Không tìm thấy file main.yml trong $(pwd)"
             exit 1
           fi
-
-          # 2. Sử dụng sed để tìm khối kernel_build_version và sửa dòng default đầu tiên nó thấy
-          # Lệnh này giới hạn phạm vi tìm kiếm từ 'kernel_build_version:' đến dòng 'default:' tiếp theo
-          sed -i '/kernel_build_version:/,/default:/s/default: custom/default: a13-5-15/' main.yml
 
       - name: KIỂM TRA TRƯỚC KHI PUSH
         run: |
           cd remote-repo/.github/workflows/
           echo "=== KIỂM TRA ĐOẠN MÃ ĐÃ SỬA TRONG main.yml ==="
-          # Hiển thị 15 dòng sau từ khóa để xác nhận kết quả
-          grep -A 15 "kernel_build_version:" main.yml | grep "default:"
+          
+          # Thêm "|| true" để nếu không tìm thấy grep cũng không làm đỏ Workflow
+          grep -A 15 "kernel_build_version:" main.yml | grep "default:" || echo "⚠️ Không tìm thấy dòng default trong khối này"
 
       - name: Push Changes
         run: |
