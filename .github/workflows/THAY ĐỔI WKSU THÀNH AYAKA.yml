@@ -30,7 +30,7 @@ jobs:
           find . -type f -exec sed -i "s|$OLD_URL|$NEW_URL|g" {} +
 
           echo "--- Kiểm tra lại sau khi sửa ---"
-          grep -r "Ayaka" .
+          grep -r "https://raw.githubusercontent.com/BEACHEADVN/Ayaka/canary/kernel/setup.sh" .
           
       - name: Push Changes
         run: |
