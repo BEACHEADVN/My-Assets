@@ -21,7 +21,7 @@ jobs:
           OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU"
           NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
           OLD_DIR1="Wild_KSU"
-          OLD_DIR2="Wild_KSU"
+          OLD_DIR2="Wild KSU"
           NEW_DIR="Ayaka"
           
           # Sửa trực tiếp file action.yml
