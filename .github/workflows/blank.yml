@@ -15,5 +15,5 @@ jobs:
           
           echo "--- Đang tìm dòng chứa FILE_NAME ---"
           # Lệnh curl lấy nội dung, grep tìm dòng, -n để hiện số thứ tự dòng
-          curl -s $URL | grep -n "FILE_NAME"
+          curl -s $URL | grep "FILE_NAME" | grep "\$KERNEL_VERSION"
           echo "------------------------------------"
