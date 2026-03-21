@@ -20,12 +20,12 @@ jobs:
           
           OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU"
           NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
+          OLD_DIR="working-directory: ${{ github.workspace }}/kernel/Wild_KSU"
+          NEW_DIR="working-directory: ${{ github.workspace }}/kernel/Ayaka"
           
           # Sửa trực tiếp file action.yml
           sed -i "s|$OLD_URL|$NEW_URL|g" action.yml
-          
-          echo "--- Nội dung dòng sau khi sửa ---"
-          grep "BEACHEADVN/Ayaka" action.yml
+          sed -i "s|$OLD_DIR|$NEW_DIR|g" action.yml
 
       - name: Push Changes
         run: |
@@ -43,4 +43,4 @@ jobs:
           TARGET_FILE="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/actions/wksu/action.yml"
           
           # Kiểm tra xem URL mới đã xuất hiện trên server chưa
-          curl -H "Authorization: token ${{ secrets.GH_PAT }}" -sL $TARGET_FILE | grep "BEACHEADVN/Ayaka"
+          curl -H "Authorization: token ${{ secrets.GH_PAT }}" -sL $TARGET_FILE
