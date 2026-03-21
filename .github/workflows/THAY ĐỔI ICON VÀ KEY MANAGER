@@ -1,0 +1,139 @@
+name: Auto sync Assets
+on:
+  workflow_dispatch: # Chạy thủ công khi bạn muốn cập nhật
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Current Branch
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 giúp tránh các lỗi về lịch sử git khi push
+          fetch-depth: 0
+      - name: Checkout My-Assets
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/My-Assets
+          path: my_assets_temp
+
+      - name: Replace Resources
+        run: |
+          # Đường dẫn nguồn và đích
+          SOURCE_DIR="my_assets_temp/Wild_KSU/res"
+          DEST_DIR="manager/app/src/main/res"
+
+          # Kiểm tra xem thư mục nguồn có tồn tại không
+          if [ -d "$SOURCE_DIR" ]; then
+            echo "Đang sao chép tài nguyên từ $SOURCE_DIR vào $DEST_DIR..."
+            
+            # Sử dụng -R để copy thư mục và -f để ghi đè các file trùng tên
+            # Chúng ta copy nội dung bên trong thư mục res của My-Assets
+            cp -Rf $SOURCE_DIR/. $DEST_DIR/
+            
+            echo "Thay thế hoàn tất."
+          else
+            echo "Lỗi: Không tìm thấy thư mục nguồn $SOURCE_DIR"
+            exit 1
+          fi
+          echo "VỊ TRÍ HIỆN TẠI"
+          pwd
+          echo "=== Searching for 0x381 ==="
+          FILES_SIZE=$(grep -rl "0x381" ./kernel || true)
+          if [ -n "$FILES_SIZE" ]; then
+          echo "[✔] Tìm thấy 0x381 tại: $FILES_SIZE"
+          echo "$FILES_SIZE" | xargs sed -i 's/0x381/0x389/g'
+          echo "--- Đã cập nhật lên 0x389 ---"
+          else
+          echo "[!] Không tìm thấy 0x381 trong ./kernel (Có thể đã cập nhật)"
+          fi
+          
+          echo "=== Cập nhật Manager Hash ==="
+          OLD_HASH="52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4"
+          NEW_HASH="e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8"
+          FILES_HASH=$(grep -rl "$OLD_HASH" ./kernel || true)
+          if [ -n "$FILES_HASH" ]; then
+          echo "[✔] Đang cập nhật Hash mới..."
+          echo "$FILES_HASH" | xargs sed -i "s/$OLD_HASH/$NEW_HASH/g"
+          else
+          echo "[!] Không tìm thấy Hash cũ hoặc đã được thay thế."
+          fi
+          echo "=== Kiểm tra file sau khi sửa ==="
+          grep -rE "0x389|$NEW_HASH" ./kernel
+          echo '=== Searching for applicationId ==='
+          # Sử dụng dấu nháy đơn bao ngoài cùng để giữ nguyên các dấu ngoặc kép bên trong
+          OLD_ID='applicationId = "com.twj.wksu"'
+          NEW_ID='applicationId = "com.beacheadvn.ayaka"'
+
+          # Tìm kiếm trong thư mục manager
+          FILES_ID=$(grep -rl "$OLD_ID" ./manager || true)
+
+          if [ -n "$FILES_ID" ]; then
+          echo "[✔] Tìm thấy tại: $FILES_ID"
+          # Dùng dấu phân cách | thay cho / trong sed để tránh xung đột nếu có dấu xẹt
+          # Quan trọng: Đảm bảo NEW_ID có đầy đủ dấu ngoặc kép đóng
+          sed -i "s/$OLD_ID/$NEW_ID/g" $FILES_ID
+          echo "--- Đã cập nhật lên com.beacheadvn.ayaka ---"
+          else
+          echo "[!] Không tìm thấy $OLD_ID. Kiểm tra lại file hoặc khoảng trắng."
+          fi
+          echo "=== Đang đổi tên App thành Ayaka ==="
+
+          # Tìm tất cả file strings.xml trong các thư mục values, values-vi, values-zh...
+          # Sau đó thay thế nội dung trong tag app_name
+          find manager/app/src/main/res/ -name "strings.xml" | xargs sed -i 's/>Wild KSU</>Ayaka</g'
+
+          # Kiểm tra lại kết quả tại file mặc định
+          echo "--- Kết quả sau khi đổi tên ---"
+          grep "app_name" manager/app/src/main/res/values/strings.xml || echo "Không tìm thấy tag app_name"
+          echo "=== Đang sửa tên file APK đầu ra trong build.gradle.kts ==="
+          # Tìm và thay thế Wild_KSU thành Ayaka trong thiết lập outputFileName
+          sed -i 's/output.outputFileName = "Wild_KSU_/output.outputFileName = "Ayaka_Manager_/g' manager/app/build.gradle.kts
+          # Kiểm tra lại kết quả
+          grep "output.outputFileName" manager/app/build.gradle.kts
+
+          sed -i 's/OWNER="WildKernels"/OWNER="BEACHEADVN"/g' kernel/setup.sh
+          sed -i 's/REPO="Wild_KSU"/REPO="Ayaka"/g' kernel/setup.sh
+          echo "Đã cập nhật setup.sh sang OWNER=BEACHEADVN và REPO=Ayaka"
+          
+          cd ./manager
+          ls
+          sed -i 's/Wild_KSU/Ayaka_Manager/g' spoof
+
+
+      - name: Clean up
+        run: rm -rf my_assets_temp
+
+      - name: Commit and Push
+        run: |
+         CURRENT_BRANCH="${{ github.ref_name }}"
+         echo "Đang thực thi trên branch: $CURRENT_BRANCH"
+
+         git config --global user.name "github-actions[bot]"
+         git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    
+         # Thêm tất cả thay đổi từ res và kernel
+         git add .
+    
+         if git diff-index --quiet HEAD; then
+         echo "Không có thay đổi nào để commit."
+         else
+         git commit -m "chore: sync assets và update KSU cho branch $CURRENT_BRANCH"
+      
+         # Push lên đúng branch đang chạy
+         git push origin HEAD:refs/heads/$CURRENT_BRANCH
+         fi
+
+      - name: KIỂM TRA KEY
+        run: |
+          # Đường dẫn nguồn và đích
+          echo "••••KIỂM TRA MANAGER HASH"
+          cat $(find . -type f -name "manager_hash.h")
+          echo "••••KIỂM TRA KBUILD"
+          cat $(find . -type f -name "Kbuild")
+          echo "••••KIỂM TRA build.gradle.kts"
+          cat $(find . -type f -name "build.gradle.kts")
+          echo "••••KIỂM TRA setup.sh"
+          cat $(find . -type f -name "setup.sh")
+          echo "=== spoof ==="
+          find . -name "spoof" -exec cat {} \;
