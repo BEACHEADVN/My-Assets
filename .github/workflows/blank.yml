@@ -1,4 +1,4 @@
-name: Patch FILE_NAME to Ayaka
+name: ĐỔI TÊN KERNEL ĐƯỢC BUILD RA
 
 on:
   workflow_dispatch: # Chạy thủ công để kiểm tra kết quả
