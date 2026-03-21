@@ -13,19 +13,23 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: LỌC
+      - name: LỌC VÀ ĐỊNH DẠNG CHUẨN
         run: |
           cd remote-repo/
           FILE_PATH=".github/kernel-config/a13-5.15.json"
-          
-          echo "--- Nội dung gốc (3 dòng đầu) ---"
-          head -n 5 $FILE_PATH
-          
-          # Dùng jq để lọc chỉ giữ lại 5.15.170 và 5.15.189
-          # Lệnh này ghi đè trực tiếp vào file tạm rồi chuyển ngược lại file gốc
-          jq -c '.include |= map(select(.kernel_version | contains("5.15.170") or contains("5.15.189")))' $FILE_PATH > temp.json && mv temp.json $FILE_PATH
-          
-          echo "--- Nội dung sau khi lọc ---"
+
+          # 1. Lọc dữ liệu và đưa về dạng một dòng (compact)
+          jq -c '.include |= map(select(.kernel_version | contains("5.15.170") or contains("5.15.189")))' $FILE_PATH > temp.json
+
+          # 2. Dùng sed để định dạng lại: 
+          # - Thêm xuống dòng sau dấu { đầu tiên và sau các dấu phẩy giữa các object
+          # - Thêm khoảng trắng thụt lề
+          # - Đưa dấu ] và } cuối cùng xuống dòng
+          sed -e 's/{"include":\[/{\n  "include": [\n    /g' \
+              -e 's/},{"kernel/},\n    {"kernel/g' \
+              -e 's/]}\n*$/\n  ]\n}/g' temp.json > $FILE_PATH
+
+          echo "--- Nội dung sau khi định dạng giống sửa tay ---"
           cat $FILE_PATH
           
       - name: Push Changes
