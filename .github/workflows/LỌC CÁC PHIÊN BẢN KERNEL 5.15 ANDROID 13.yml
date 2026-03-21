@@ -30,7 +30,7 @@ jobs:
           
       - name: Push Changes
         run: |
-          cd remote-repo/.github/workflows/
+          cd remote-repo/.github/kernel-config
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
