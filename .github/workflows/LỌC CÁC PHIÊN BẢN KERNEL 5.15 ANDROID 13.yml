@@ -23,7 +23,7 @@ jobs:
           
           # Dùng jq để lọc chỉ giữ lại 5.15.170 và 5.15.189
           # Lệnh này ghi đè trực tiếp vào file tạm rồi chuyển ngược lại file gốc
-          jq '.include |= map(select(.kernel_version | contains("5.15.170") or contains("5.15.189")))' $FILE_PATH > temp.json && mv temp.json $FILE_PATH
+          jq -c '.include |= map(select(.kernel_version | contains("5.15.170") or contains("5.15.189")))' $FILE_PATH > temp.json && mv temp.json $FILE_PATH
           
           echo "--- Nội dung sau khi lọc ---"
           cat $FILE_PATH
