@@ -35,11 +35,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
           # Kiểm tra xem có sự thay đổi nào để commit không
-          if git diff --exit-code build.yml > /dev/null; then
+          if git diff --exit-code a13-5.15.json > /dev/null; then
             echo "Không có thay đổi nào để push."
           else
-            git add build.yml
-            git commit -m "Rename FILE_NAME prefix to Ayaka"
+            git add a13-5.15.json
+            git commit -m "LỌC CÁC PHIÊN BẢN KERNEL 5.15 ANDROID 13"
             git push origin main
           fi
           
