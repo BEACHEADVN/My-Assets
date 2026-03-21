@@ -19,8 +19,8 @@ jobs:
           cd remote-repo/.github
           
           # Định nghĩa URL cũ và URL mới
-          OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU/canary/kernel/setup.sh"
-          NEW_URL="curl -LSs https://raw.githubusercontent.com/BEACHEADVN/Ayaka/canary/kernel/setup.sh"
+          OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU"
+          NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
           
           echo "--- Các file có chứa URL cũ ---"
           grep -r "$OLD_URL" . || echo "Không tìm thấy file nào."
@@ -42,4 +42,4 @@ jobs:
         run: |
            echo "TẬP TIN SAU KHI SỬA"
            sleep 5
-           grep -r "https://raw.githubusercontent.com/BEACHEADVN/Ayaka/canary/kernel/setup.sh" .
+           grep -r "https://raw.githubusercontent.com/BEACHEADVN/Ayaka" .
