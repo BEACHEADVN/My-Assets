@@ -24,8 +24,8 @@ jobs:
           else
             echo "Tiến hành chèn..."
 
-            sed -i '/name: Setup Ayaka/r /dev/stdin' build.yml <<'EOF'
-
+            # 🔥 Tạo block riêng → không bao giờ lỗi EOF
+            cat <<'EOF' > add_key_block.yml
       - name: TÌM VÀ SỬA KEY
         run: |
           echo "•••TÌM SIZE GỐC CỦA WILD_KSU"
@@ -65,7 +65,10 @@ jobs:
 
           echo "TÌM KBUILD"
           cat $(find . -type f -name "Kbuild")
-          EOF
+EOF
+
+            # 🔥 Chèn vào build.yml
+            sed -i '/name: Setup Ayaka/r add_key_block.yml' build.yml
 
             echo "Chèn thành công."
           fi
