@@ -35,7 +35,6 @@
         bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         chat_id: ${{ secrets.TELEGRAM_USER_ID }}
         context: |
-          <b>Successfully Built Kernel! ✅</b>
           
           <b>Version:</b> <code>${{ steps.extract.outputs.file_name }}</code>
           <b>Variant:</b> <code>${{ inputs.variant || 'Normal' }}</code>
