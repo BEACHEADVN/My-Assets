@@ -1,0 +1,9 @@
+    - name: THAY ĐỔI TÊN KERNEL
+      run: |
+          # Thay đổi EXTRAVERSION trực tiếp bằng đường dẫn file
+          sed -i 's/^EXTRAVERSION =.*/EXTRAVERSION = -Ayaka/' "$GITHUB_WORKSPACE/kernel/common/Makefile"
+          echo "•••••••Nội dung makefile sau sửa•••••••”
+          echo "•••••••Nội dung makefile sau sửa•••••••”
+          echo "•••••••Nội dung makefile sau sửa•••••••”
+          echo "•••••••Nội dung makefile sau sửa•••••••”
+          grep "^EXTRAVERSION"  "$GITHUB_WORKSPACE/kernel/common/Makefile"
