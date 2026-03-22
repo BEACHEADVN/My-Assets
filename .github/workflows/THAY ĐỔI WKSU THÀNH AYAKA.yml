@@ -58,7 +58,7 @@ jobs:
           if git diff-index --quiet HEAD; then
             echo "Không có thay đổi nào để commit."
           else
-            git commit -m "Update source URLs and rebranding to Ayaka in action.yml and build.yml"
+            git commit -m "THAY ĐỔI WILD_KSU THÀNH AYAKA"
             git push origin main
           fi
           
