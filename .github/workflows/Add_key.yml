@@ -28,7 +28,7 @@ jobs:
           echo "--- Nội dung file ---"
           cat add_key_block.yml
           echo "Chèn vào build.yml..."
-          sed -i '/name: Setup SUSFS/r add_key_block.yml' build.yml
+          sed -i '/- name: Setup SUSFS/ i\' build.yml && sed -i '/- name: Setup SUSFS/r add_key_block.yml' build.yml
           echo "Chèn thành công."
           fi
       - name: Push Changes
