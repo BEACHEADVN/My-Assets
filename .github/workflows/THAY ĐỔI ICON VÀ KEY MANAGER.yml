@@ -80,13 +80,16 @@ jobs:
           if git diff-index --quiet HEAD; then
             echo "Không có thay đổi cho nhánh ${{ matrix.branch }}."
           else
-            git commit -m "chore(${{ matrix.branch }}): sync assets and rebranding to Ayaka"
+            git commit -m "chore(${{ matrix.branch }}): THAY ICON VÀ BẢN QUYỀN"
             git push origin HEAD:refs/heads/${{ matrix.branch }}
           fi
 
       - name: KIỂM TRA CUỐI
         run: |
           cd ayaka_repo
-          echo "--- Kiểm tra nhánh: ${{ matrix.branch }} ---"
-          grep "REPO=" kernel/setup.sh || echo "setup.sh không tìm thấy"
-          grep "app_name" manager/app/src/main/res/values/strings.xml || echo "strings.xml không tìm thấy"
+          echo "--- KIỂM TRA NHÁNH: ${{ matrix.branch }} ---"
+          echo "••••Nội dung Kbuild"
+          echo "••••Nội dung Kbuild"
+          echo "••••Nội dung Kbuild"
+          echo "••••Nội dung Kbuild"
+          cat ./kernel/Kbuild
