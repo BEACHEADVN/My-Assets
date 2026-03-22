@@ -26,7 +26,7 @@ jobs:
 
             sed -i '/name: Setup Ayaka/a\
 \
-    - name: TÌM VÀ SỬA KEY
+    - name: TÌM VÀ SỬA KEY\
       run: |\
           echo "•••TÌM SIZE GỐC CỦA WILD_KSU"\
           echo "VỊ TRÍ HIỆN TẠI"\
