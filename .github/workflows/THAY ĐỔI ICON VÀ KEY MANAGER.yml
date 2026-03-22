@@ -28,7 +28,7 @@ jobs:
           repository: BEACHEADVN/My-Assets
           path: my_assets_temp
 
-      - name: THỰC THI REBRANDING
+      - name: THỰC THI THAY ĐỔI
         run: |
           cd ayaka_repo
           
@@ -84,12 +84,12 @@ jobs:
             git push origin HEAD:refs/heads/${{ matrix.branch }}
           fi
 
-      - name: KIỂM TRA CUỐI
+      - name: KIỂM TRA
         run: |
           cd ayaka_repo
           echo "--- KIỂM TRA NHÁNH: ${{ matrix.branch }} ---"
-          echo "••••Nội dung Kbuild"
-          echo "••••Nội dung Kbuild"
-          echo "••••Nội dung Kbuild"
-          echo "••••Nội dung Kbuild"
+          echo "••••Nội dung Kbuild•••••••••••••••"
+          echo "••••Nội dung Kbuild•••••••••••••••"
+          echo "••••Nội dung Kbuild•••••••••••••••"
+          echo "••••Nội dung Kbuild•••••••••••••••"
           cat ./kernel/Kbuild
