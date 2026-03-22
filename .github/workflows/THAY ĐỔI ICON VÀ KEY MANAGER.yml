@@ -81,7 +81,7 @@ jobs:
             echo "Không có thay đổi cho nhánh ${{ matrix.branch }}."
           else
             git commit -m "chore(${{ matrix.branch }}): sync assets and rebranding to Ayaka"
-            git push origin HEAD:${{ matrix.branch }}
+            git push origin HEAD:refs/heads/${{ matrix.branch }}
           fi
 
       - name: KIỂM TRA CUỐI
