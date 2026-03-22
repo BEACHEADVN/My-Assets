@@ -93,3 +93,9 @@ jobs:
           echo "••••Nội dung Kbuild•••••••••••••••"
           echo "••••Nội dung Kbuild•••••••••••••••"
           cat ./kernel/Kbuild
+
+          echo "••••Nội dung build.gradle.kts•••••••••••••••"
+          echo "••••Nội dung build.gradle.kts•••••••••••••••"
+          echo "••••Nội dung build.gradle.kts•••••••••••••••"
+          echo "••••Nội dung build.gradle.kts•••••••••••••••"
+          cat ./manager/app/build.gradle.kts
