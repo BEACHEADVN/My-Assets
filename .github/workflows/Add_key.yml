@@ -14,64 +14,23 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: CHÈN ADD_KEY (PRINTF)
-  run: |
-    cd remote-repo/.github/workflows/
+      - name: CHÈN ADD_KEY
+        run: |
+         cd remote-repo/.github/workflows/
 
-    echo "--- Kiểm tra đã chèn chưa ---"
-    if grep -q "TÌM VÀ SỬA KEY" build.yml; then
-      echo "Đã tồn tại step, bỏ qua."
-    else
-      echo "Tạo block..."
-
-      printf '%s\n' \
-'      - name: TÌM VÀ SỬA KEY' \
-'        run: |' \
-'          echo "•••TÌM SIZE GỐC CỦA WILD_KSU"' \
-'          echo "VỊ TRÍ HIỆN TẠI"' \
-'          pwd' \
-'          echo "CÂY THƯ MỤC"' \
-'          ls' \
-'          cd kernel/Ayaka' \
-'          FILES=$(grep -rl "0x381" .)' \
-'          if [ -n "$FILES" ]; then' \
-'            echo "[✔] Tìm thấy 0x381 trong các file:"' \
-'            echo "$FILES"' \
-'            echo "--- Đang tiến hành sửa thành 0x389 ---"' \
-'            echo "$FILES" | xargs sed -i '\''s/0x381/0x389/g'\''' \
-'            echo "=== Kết quả sau khi sửa ==="' \
-'            grep -rn "0x389" .' \
-'          else' \
-'            echo "[❌] Không tìm thấy 0x381"' \
-'            grep -rn "0x389" .' \
-'          fi' \
-'' \
-'          echo "•••TÌM HASH GỐC CỦA WILD_KSU"' \
-'          FILES=$(grep -rl "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4" .)' \
-'          if [ -n "$FILES" ]; then' \
-'            echo "[✔] Tìm thấy HASH:"' \
-'            echo "$FILES"' \
-'            echo "--- Đang tiến hành sửa ---"' \
-'            echo "$FILES" | xargs sed -i '\''s/52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4/e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8/g'\''' \
-'            echo "=== Kết quả sau khi sửa ==="' \
-'            grep -rn "e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8" .' \
-'          else' \
-'            echo "[❌] Không tìm thấy HASH cũ"' \
-'          fi' \
-'' \
-'          echo "TÌM MANAGER HASH"' \
-'          cat $(find . -type f -name "manager_hash.h")' \
-'' \
-'          echo "TÌM KBUILD"' \
-'          cat $(find . -type f -name "Kbuild")' \
-> add_key_block.yml
-
-      echo "Chèn vào build.yml..."
-
-      sed -i '/name: Setup Ayaka/r add_key_block.yml' build.yml
-
-      echo "Chèn thành công."
-    fi
+         echo "--- Kiểm tra đã chèn chưa ---"
+         if grep -q "TÌM VÀ SỬA KEY" build.yml; then
+         echo "Đã tồn tại, bỏ qua."
+         else
+         echo "Tải file từ My-Assets..."
+         curl -L -o add_key_block.yml \
+          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/ADD_KEY_REPO_KERNEL.txt
+          echo "--- Nội dung file ---"
+          cat add_key_block.yml
+          echo "Chèn vào build.yml..."
+          sed -i '/name: Setup Ayaka/r add_key_block.yml' build.yml
+          echo "Chèn thành công."
+          fi
       - name: Push Changes
         run: |
           cd remote-repo
