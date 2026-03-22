@@ -1,4 +1,4 @@
-    - name: Create AnyKernel3 zip for Telegram
+    - name: CHUẨN BỊ AnyKernel3 zip CHO TELEGRAM
       run: |
        cd $GITHUB_WORKSPACE/AnyKernel3
        zip -r "${{ steps.extract.outputs.file_name }}-AnyKernel3.zip" . -x "*.zip" ".git/*"
