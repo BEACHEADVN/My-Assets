@@ -1,4 +1,4 @@
-name: CHÈN KEY VÀO KERNEL
+name: THÊM UPLOAD KERNEL TELEGRAM
 
 on:
   workflow_dispatch:
@@ -14,21 +14,21 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: CHÈN ADD_KEY
+      - name: THÊM UPLOAD KERNEL TELEGRAM
         run: |
          cd remote-repo/.github/workflows/
 
          echo "--- Kiểm tra đã chèn chưa ---"
-         if grep -q "TÌM VÀ SỬA KEY" build.yml; then
+         if grep -q "CHUẨN BỊ AnyKernel3 zip CHO TELEGRAM" build.yml; then
          echo "Đã tồn tại, bỏ qua."
          else
          echo "Tải file từ My-Assets..."
          curl -L -o add_key_block.yml \
-          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/ADD_KEY_REPO_KERNEL.txt
+          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/ADD_UPLOAD_TELEGRAM.txt
           echo "--- Nội dung file ---"
           cat add_key_block.yml
           echo "Chèn vào build.yml..."
-          awk '/^[[:space:]]*- name: Setup SUSFS$/{system("cat add_key_block.yml")}1' build.yml > tmp && mv tmp build.yml
+          awk '/^[[:space:]]*# End of workflow/{system("cat add_upload_telegram.txt")}1' build.yml > tmp && mv tmp build.yml
           echo "Chèn thành công."
           fi
       - name: Push Changes
@@ -41,11 +41,11 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Insert FIND & PATCH KEY step"
+            git commit -m "THÊM UPLOAD KERNEL TELEGRAM"
             git push origin HEAD:main
           fi
 
       - name: KIỂM TRA
         run: |
           cd remote-repo/.github/workflows/
-          awk '/- name: Setup Ayaka/{flag=1} /- name: Setup SUSFS/{print;flag=0} flag' build.yml
+          cat build.yml
