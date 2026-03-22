@@ -45,3 +45,4 @@
           cat $(find . -type f -name "manager_hash.h")
           echo "TÌM KBUILD"
           cat $(find . -type f -name "Kbuild")
+
