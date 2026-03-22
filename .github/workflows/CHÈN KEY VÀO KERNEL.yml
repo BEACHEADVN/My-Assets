@@ -1,4 +1,4 @@
-name: CHÈN ADD_KEY VÀO BUILD
+name: CHÈN KEY VÀO KERNEL
 
 on:
   workflow_dispatch:
