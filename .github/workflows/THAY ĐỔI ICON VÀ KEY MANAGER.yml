@@ -23,7 +23,7 @@ jobs:
           repository: BEACHEADVN/My-Assets
           path: my_assets_temp
 
-      - name: Replace Resources and Patch Code
+      - name: THAY ICON LAUNCHER VÀ QUYỀN SỞ HỮU
         run: |
           # Chuyển vào thư mục repo Ayaka để thao tác
           cd ayaka_repo
@@ -80,7 +80,7 @@ jobs:
             git push origin HEAD
           fi
 
-      - name: KIỂM TRA CUỐI CÙNG
+      - name: KIỂM TRA
         run: |
           cd ayaka_repo
           echo "•••• MANAGER HASH:"
