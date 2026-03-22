@@ -7,3 +7,4 @@
           echo "•••••••Nội dung makefile sau sửa•••••••”
           echo "•••••••Nội dung makefile sau sửa•••••••”
           grep "^EXTRAVERSION"  "$GITHUB_WORKSPACE/kernel/common/Makefile"
+
