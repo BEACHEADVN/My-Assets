@@ -6,17 +6,6 @@
        echo "=== CHECK ZIP ==="
        ls -lah
 
-    - name: Get Commit Details
-      id: commit_info
-      run: |
-        # Lấy mã hash ngắn (7 ký tự)
-        SHORT_SHA=$(git rev-parse --short HEAD)
-        # Lấy nội dung commit message
-        MSG=$(git log -1 --pretty=format:"%s")
-        
-        echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-        echo "msg=$MSG" >> $GITHUB_OUTPUT
-
     - name: Send Notification to Telegram
       if: success()
       uses: xireiki/channel-post@v1
