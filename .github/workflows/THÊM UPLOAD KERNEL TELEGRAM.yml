@@ -1,0 +1,51 @@
+name: CHÈN KEY VÀO KERNEL
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/GKI_KernelSU_SUSFS
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+
+      - name: CHÈN ADD_KEY
+        run: |
+         cd remote-repo/.github/workflows/
+
+         echo "--- Kiểm tra đã chèn chưa ---"
+         if grep -q "TÌM VÀ SỬA KEY" build.yml; then
+         echo "Đã tồn tại, bỏ qua."
+         else
+         echo "Tải file từ My-Assets..."
+         curl -L -o add_key_block.yml \
+          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/ADD_KEY_REPO_KERNEL.txt
+          echo "--- Nội dung file ---"
+          cat add_key_block.yml
+          echo "Chèn vào build.yml..."
+          awk '/^[[:space:]]*- name: Setup SUSFS$/{system("cat add_key_block.yml")}1' build.yml > tmp && mv tmp build.yml
+          echo "Chèn thành công."
+          fi
+      - name: Push Changes
+        run: |
+          cd remote-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet; then
+            echo "Không có thay đổi nào để push."
+          else
+            git add .github/workflows/build.yml
+            git commit -m "Insert FIND & PATCH KEY step"
+            git push origin HEAD:main
+          fi
+
+      - name: KIỂM TRA
+        run: |
+          cd remote-repo/.github/workflows/
+          awk '/- name: Setup Ayaka/{flag=1} /- name: Setup SUSFS/{print;flag=0} flag' build.yml
