@@ -44,7 +44,7 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add build.yml
-            git commit -m "Rename FILE_NAME prefix to Ayaka"
+            git commit -m "ĐỔI TÊN KERNEL ZIP ĐƯỢC BUILD RA"
             git push origin main
           fi
           
