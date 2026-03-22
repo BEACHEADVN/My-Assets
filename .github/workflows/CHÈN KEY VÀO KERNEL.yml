@@ -48,4 +48,4 @@ jobs:
       - name: KIỂM TRA
         run: |
           cd remote-repo/.github/workflows/
-          awk '/- name: Setup Ayaka/{flag=1;next}/- name: Setup SUSFS/{flag=0}flag' build.yml
+          awk '/- name: Setup Ayaka/{flag=1} /- name: Setup SUSFS/{print;flag=0} flag' build.yml
