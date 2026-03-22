@@ -1,4 +1,5 @@
-    - name: CHUẨN BỊ AnyKernel3 zip CHO TELEGRAM
+
+- name: CHUẨN BỊ AnyKernel3 zip CHO TELEGRAM
       run: |
        cd $GITHUB_WORKSPACE/AnyKernel3
        zip -r "${{ steps.extract.outputs.file_name }}-AnyKernel3.zip" . -x "*.zip" ".git/*"
@@ -59,5 +60,4 @@
         chat_id: ${{ secrets.TELEGRAM_USER_ID }}
         context: "<b>Build Kernel Thất Bại! ❌</b>\nKiểm tra log tại GitHub Actions."
         parse_mode: HTML
-        method: sendMessage     
-# End of workflow
+        method: sendMessage
