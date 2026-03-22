@@ -41,7 +41,7 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Insert FIND & PATCH KEY step"
+            git commit -m "THAY KEY KERNEL"
             git push origin HEAD:main
           fi
 
