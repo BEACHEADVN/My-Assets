@@ -28,7 +28,7 @@ jobs:
           echo "--- Nội dung file ---"
           cat add_key_block.yml
           echo "Chèn vào build.yml..."
-          awk '/- name: Setup SUSFS/{system("cat add_key_block.yml")}1' build.yml > tmp && mv tmp build.yml
+          awk '/^- name: Setup SUSFS$/{system("cat add_key_block.yml")}1' build.yml > tmp && mv tmp build.yml
           echo "Chèn thành công."
           fi
       - name: Push Changes
