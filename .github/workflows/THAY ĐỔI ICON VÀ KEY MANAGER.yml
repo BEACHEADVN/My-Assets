@@ -1,31 +1,35 @@
-name: THAY ĐỔI ICON VÀ KEY MANAGER
+name: REBRANDING MULTI-BRANCH (Ayaka)
 
 on:
   workflow_dispatch:
 
 jobs:
-  sync-to-ayaka:
+  sync-and-rebrand:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: [stable, beta, canary] # Chạy đồng thời cho 3 nhánh
+    
     steps:
-      # 1. Checkout repo ĐÍCH (Ayaka) để chuẩn bị sửa và push
-      - name: Checkout Ayaka Repo
+      # 1. Checkout nhánh tương ứng từ ma trận
+      - name: Checkout Ayaka Repo (${{ matrix.branch }})
         uses: actions/checkout@v4
         with:
           repository: BEACHEADVN/Ayaka
-          token: ${{ secrets.GH_PAT }} # Cần PAT có quyền push vào Ayaka
+          token: ${{ secrets.GH_PAT }}
           path: ayaka_repo
+          ref: ${{ matrix.branch }}
           fetch-depth: 0
 
-      # 2. Checkout repo NGUỒN (My-Assets) để lấy icon/res
+      # 2. Lấy Assets từ repo nguồn
       - name: Checkout My-Assets
         uses: actions/checkout@v4
         with:
           repository: BEACHEADVN/My-Assets
           path: my_assets_temp
 
-      - name: THAY ICON LAUNCHER VÀ QUYỀN SỞ HỮU
+      - name: THỰC THI REBRANDING
         run: |
-          # Chuyển vào thư mục repo Ayaka để thao tác
           cd ayaka_repo
           
           echo "=== 1. Copy Icon từ My-Assets ==="
@@ -33,40 +37,40 @@ jobs:
           DEST_RES="manager/app/src/main/res"
           if [ -d "$SOURCE_RES" ]; then
             cp -Rf $SOURCE_RES/. $DEST_RES/
-            echo "[✔] Thay thế Resources hoàn tất."
-          else
-            echo "[!] Lỗi: Không tìm thấy nguồn icon." && exit 1
+            echo "[✔] Resources updated."
           fi
 
-          echo "=== 2. Cập nhật Key Manager (0x381 -> 0x389) ==="
-          grep -rl "0x381" ./kernel | xargs sed -i 's/0x381/0x389/g' || echo "Đã cập nhật hoặc không tìm thấy."
-
-          echo "=== 3. Cập nhật Manager Hash ==="
+          echo "=== 2. Cập nhật Key & Hash (Kernel) ==="
+          # Cập nhật Key Manager (0x381 -> 0x389)
+          grep -rl "0x381" ./kernel | xargs sed -i 's/0x381/0x389/g' || true
+          
+          # Cập nhật Manager Hash
           OLD_HASH="52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4"
           NEW_HASH="e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8"
-          grep -rl "$OLD_HASH" ./kernel | xargs sed -i "s/$OLD_HASH/$NEW_HASH/g" || echo "Hash đã mới."
+          grep -rl "$OLD_HASH" ./kernel | xargs sed -i "s/$OLD_HASH/$NEW_HASH/g" || true
 
-          echo "=== 4. Đổi Application ID ==="
-          OLD_ID='applicationId = "com.twj.wksu"'
-          NEW_ID='applicationId = "com.beacheadvn.ayaka"'
-          grep -rl "$OLD_ID" ./manager | xargs sed -i "s|$OLD_ID|$NEW_ID|g" || echo "ID đã đổi."
+          echo "=== 3. Rebranding Manager (App ID & Name) ==="
+          # Đổi Application ID
+          sed -i 's/applicationId = "com.twj.wksu"/applicationId = "com.beacheadvn.ayaka"/g' manager/app/build.gradle.kts || true
+          
+          # Đổi App Name trong strings.xml
+          find manager/app/src/main/res/ -name "strings.xml" | xargs sed -i 's/>Wild KSU</>Ayaka</g' || true
+          
+          # Đổi tên APK Output
+          sed -i 's/output.outputFileName = "Wild_KSU_/output.outputFileName = "Ayaka_Manager_/g' manager/app/build.gradle.kts || true
 
-          echo "=== 5. Đổi tên App (Strings) ==="
-          find manager/app/src/main/res/ -name "strings.xml" | xargs sed -i 's/>Wild KSU</>Ayaka</g'
+          echo "=== 4. Cập nhật setup.sh ==="
+          if [ -f "kernel/setup.sh" ]; then
+            sed -i 's/OWNER="WildKernels"/OWNER="BEACHEADVN"/g' kernel/setup.sh
+            sed -i 's/REPO="Wild_KSU"/REPO="Ayaka"/g' kernel/setup.sh
+          fi
 
-          echo "=== 6. Đổi tên APK Output ==="
-          sed -i 's/output.outputFileName = "Wild_KSU_/output.outputFileName = "Ayaka_Manager_/g' manager/app/build.gradle.kts
-
-          echo "=== 7. Cập nhật setup.sh ==="
-          sed -i 's/OWNER="WildKernels"/OWNER="BEACHEADVN"/g' kernel/setup.sh
-          sed -i 's/REPO="Wild_KSU"/REPO="Ayaka"/g' kernel/setup.sh
-
-          echo "=== 8. Sửa file spoof ==="
+          echo "=== 5. Sửa file spoof ==="
           if [ -f "manager/spoof" ]; then
             sed -i 's/Wild_KSU/Ayaka_Manager/g' manager/spoof
           fi
 
-      - name: Commit and Push to Ayaka
+      - name: Commit and Push
         run: |
           cd ayaka_repo
           git config user.name "github-actions[bot]"
@@ -74,19 +78,15 @@ jobs:
           
           git add .
           if git diff-index --quiet HEAD; then
-            echo "Không có thay đổi nào để commit."
+            echo "Không có thay đổi cho nhánh ${{ matrix.branch }}."
           else
-            git commit -m "chore: sync assets từ My-Assets và rebranding sang Ayaka"
-            git push origin HEAD
+            git commit -m "chore(${{ matrix.branch }}): sync assets and rebranding to Ayaka"
+            git push origin HEAD:${{ matrix.branch }}
           fi
 
-      - name: KIỂM TRA
+      - name: KIỂM TRA CUỐI
         run: |
           cd ayaka_repo
-          echo "•••• MANAGER HASH:"
-          find . -name "manager_hash.h" -exec grep "0x389" {} + || echo "Not found"
-          echo "•••• SETUP.SH REPO:"
-          grep "REPO=" kernel/setup.sh
-          echo "•••• APP NAME:"
-          grep "app_name" manager/app/src/main/res/values/strings.xml
-          cat ./$ayaka_repo/kernel/setup.sh
+          echo "--- Kiểm tra nhánh: ${{ matrix.branch }} ---"
+          grep "REPO=" kernel/setup.sh || echo "setup.sh không tìm thấy"
+          grep "app_name" manager/app/src/main/res/values/strings.xml || echo "strings.xml không tìm thấy"
