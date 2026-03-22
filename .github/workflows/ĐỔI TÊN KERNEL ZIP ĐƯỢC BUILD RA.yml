@@ -1,4 +1,4 @@
-name: ĐỔI TÊN KERNEL ĐƯỢC BUILD RA
+name: ĐỔI TÊN KERNEL ZIP ĐƯỢC BUILD RA
 
 on:
   workflow_dispatch:
