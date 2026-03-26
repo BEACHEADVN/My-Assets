@@ -26,10 +26,9 @@ jobs:
             cat "$FILE_PATH"
             
             # Lệnh sed này sẽ:
-            # Tìm các dòng có '- android'
-            # Nếu dòng đó KHÔNG chứa '5.15' thì sẽ XÓA dòng đó
-            # Các dòng khác (name, on, jobs, uses...) được giữ nguyên 100%
-            sed -i '/- android/ { /5.15/ !d }' "$FILE_PATH"
+            # Chỉ giữ lại dòng khớp chính xác cụm 'android13-5.15'
+            # Các dòng có '- android' nhưng KHÔNG khớp 'android13-5.15' sẽ bị xóa
+            sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
 
             echo "--- Nội dung SAU khi lọc (Giống sửa tay) ---"
             cat "$FILE_PATH"
