@@ -33,21 +33,24 @@ jobs:
             git checkout -B $branch origin/$branch
   
             if [ -f "$FILE_PATH" ]; then
+              # BƯỚC CẤP CỨU: Xóa bỏ các dòng trống hoặc dòng lỗi ở đầu file (nếu có)
+              # Xóa các dòng chỉ chứa khoảng trắng hoặc dấu gạch chéo ngược lỗi
+              sed -i '/^[[:space:]]*$/d' "$FILE_PATH"
+              sed -i '/^\\$/d' "$FILE_PATH"
+
               # 1. Thực hiện xóa các phần dư thừa bằng yq
-              # Dùng toán tử 'eval' để gộp nhiều lệnh giúp file ổn định hơn
+              # Thêm 'eval' và bọc trong nháy đơn để bảo vệ cú pháp
               yq -i '
                 del(.jobs["build-ksud-extra"]) |
                 .jobs["build-ksud"].strategy.matrix.include |= map(select(.target == "aarch64-linux-android")) |
                 .jobs["build-manager"].steps |= map(select(.name != "Download x86_64 ksud"))
               ' "$FILE_PATH"
 
-              # 2. Xóa các dòng chứa x86_64 trong phần scripts/strings bằng sed
+              # 2. Xóa các dòng chứa x86_64 trong phần scripts
               sed -i '/jniLibs\/x86_64/d' "$FILE_PATH"
               sed -i '/x86_64-linux-android\/release\/ksud/d' "$FILE_PATH"
 
-              # 3. ĐỊNH DẠNG LẠI FILE: 
-              # Dùng yq để format lại chuẩn chỉnh, thụt lề 2 khoảng trắng
-              # Lệnh này sẽ tự động tạo các khoảng nghỉ hợp lý mà không gây lỗi line 2
+              # 3. ĐỊNH DẠNG LẠI (Dùng định dạng mặc định của yq để tự giãn dòng)
               yq -i '... style=""' "$FILE_PATH"
 
               git add "$FILE_PATH"
