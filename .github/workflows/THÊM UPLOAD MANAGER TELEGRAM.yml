@@ -66,4 +66,4 @@ jobs:
           git commit -m "THÊM UPLOAD MANAGER TELEGRAM + tích hợp build (${{
           matrix.branch }})" || echo "No changes"
 
-          git push origin ${{ matrix.branch }}
+          git push origin HEAD:refs/heads/${{ matrix.branch }}
