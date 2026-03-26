@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  patch-all-branches:
+  patch-specific-branches:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -12,9 +12,9 @@ jobs:
           repository: BEACHEADVN/Ayaka
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
-          fetch-depth: 0 # Lấy toàn bộ lịch sử và branch
+          fetch-depth: 0 # Tải toàn bộ metadata của các branch
 
-      - name: LỌC VÀ PUSH CHO TẤT CẢ BRANCH
+      - name: LỌC TRÊN 3 BRANCH CHỈ ĐỊNH
         run: |
           cd remote-repo/
           FILE_PATH=".github/workflows/build-lkm.yml"
@@ -23,32 +23,37 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Lấy danh sách các branch từ remote (loại bỏ HEAD)
-          branches=$(git branch -r | grep -v "origin/HEAD" | sed 's/origin\///g')
+          # Danh sách branch mục tiêu
+          TARGET_BRANCHES=("stable" "beta" "canary")
 
-          for branch in $branches; do
-            echo "--- Đang xử lý branch: $branch ---"
+          for branch in "${TARGET_BRANCHES[@]}"; do
+            echo ">>> Đang kiểm tra branch: $branch"
             
-            # Chuyển sang branch đó
-            git checkout $branch
-            
-            if [ -f "$FILE_PATH" ]; then
-              # Lọc chính xác Android 13 5.15
-              sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
+            # Kiểm tra xem branch có tồn tại trên remote không trước khi checkout
+            if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+              git checkout $branch
               
-              git add "$FILE_PATH"
-              
-              # Kiểm tra xem có thay đổi không trước khi commit
-              if git diff --staged --quiet; then
-                echo "Branch $branch đã sạch hoặc không có gì thay đổi."
+              if [ -f "$FILE_PATH" ]; then
+                echo "Đang thực hiện lọc trên $branch..."
+                
+                # Lọc chính xác Android 13 5.15
+                sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
+                
+                git add "$FILE_PATH"
+                
+                # Kiểm tra thay đổi
+                if git diff --staged --quiet; then
+                  echo "Branch $branch đã chuẩn, không cần thay đổi."
+                else
+                  git commit -m "Chỉnh sửa tự động: Chỉ giữ lại Android 13 5.15 trên $branch"
+                  git push origin $branch
+                  echo "Đã cập nhật $branch thành công!"
+                fi
               else
-                git commit -m "Chỉnh sửa tự động: Chỉ giữ lại Android 13 5.15 cho branch $branch"
-                git push origin $branch
-                echo "Đã push thay đổi lên branch $branch."
+                echo "Bỏ qua: Không tìm thấy file trên $branch."
               fi
             else
-              echo "File $FILE_PATH không tồn tại trên branch $branch, bỏ qua."
+              echo "Cảnh báo: Branch '$branch' không tồn tại trên repository."
             fi
-            
             echo "-----------------------------------"
           done
