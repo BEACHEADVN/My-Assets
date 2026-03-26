@@ -1,4 +1,4 @@
-name: THÊM UPLOAD MANAGER TELEGRAM
+name: THÊM UPLOAD MANAGER LÊN TELEGRAM
 
 on:
   workflow_dispatch:
@@ -30,6 +30,26 @@ jobs:
         run: |
           mv upload-manager-telegram.yml .github/workflows/upload-telegram.yml
 
+      - name: 🧩 Chèn job upload-telegram vào build-manager.yml
+        run: |
+          FILE=".github/workflows/build-manager.yml"
+
+          if [ -f "$FILE" ]; then
+            if ! grep -q "upload-telegram:" "$FILE"; then
+              cat << 'EOF' >> "$FILE"
+
+  upload-telegram:
+    needs: build-manager
+    uses: ./.github/workflows/upload-telegram.yml
+    secrets: inherit
+EOF
+            else
+              echo "Đã tồn tại upload-telegram, bỏ qua"
+            fi
+          else
+            echo "Không tìm thấy build-manager.yml"
+          fi
+
       - name: 🔍 Kiểm tra thay đổi
         run: |
           git status
@@ -41,8 +61,9 @@ jobs:
           git config user.email "github-actions@github.com"
 
           git add .github/workflows/upload-telegram.yml
+          git add .github/workflows/build-manager.yml
 
-          git commit -m "THÊM UPLOAD MANAGER TELEGRAM TỪ My-Assets (${{
+          git commit -m "THÊM UPLOAD MANAGER TELEGRAM (${{
           matrix.branch }})" || echo "No changes"
 
           git push origin ${{ matrix.branch }}
