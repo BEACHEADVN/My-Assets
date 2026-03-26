@@ -12,7 +12,7 @@ jobs:
           repository: BEACHEADVN/Ayaka
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
-          fetch-depth: 0 # Tải toàn bộ metadata của các branch
+          fetch-depth: 0 # QUAN TRỌNG: Phải lấy toàn bộ lịch sử để thấy các branch khác
 
       - name: LỌC TRÊN 3 BRANCH CHỈ ĐỊNH
         run: |
@@ -23,37 +23,29 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Danh sách branch mục tiêu
-          TARGET_BRANCHES=("stable" "beta" "canary")
-
-          for branch in "${TARGET_BRANCHES[@]}"; do
-            echo ">>> Đang kiểm tra branch: $branch"
+          # Danh sách branch
+          for branch in stable beta canary; do
+            echo ">>> Đang xử lý branch: $branch"
             
-            # Kiểm tra xem branch có tồn tại trên remote không trước khi checkout
-            if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
-              git checkout $branch
+            # Buộc phải tạo track với remote branch
+            if git checkout $branch || git checkout -b $branch origin/$branch; then
               
               if [ -f "$FILE_PATH" ]; then
-                echo "Đang thực hiện lọc trên $branch..."
-                
                 # Lọc chính xác Android 13 5.15
+                # Dùng dấu nháy đơn bao quanh regex để tránh shell hiểu lầm
                 sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
                 
-                git add "$FILE_PATH"
-                
-                # Kiểm tra thay đổi
-                if git diff --staged --quiet; then
-                  echo "Branch $branch đã chuẩn, không cần thay đổi."
-                else
-                  git commit -m "Chỉnh sửa tự động: Chỉ giữ lại Android 13 5.15 trên $branch"
+                if git add "$FILE_PATH" && git commit -m "Chỉnh sửa tự động: Chỉ giữ lại Android 13 5.15 trên $branch"; then
                   git push origin $branch
-                  echo "Đã cập nhật $branch thành công!"
+                  echo "Đã cập nhật thành công branch: $branch"
+                else
+                  echo "Không có thay đổi nào cần commit trên branch: $branch"
                 fi
               else
-                echo "Bỏ qua: Không tìm thấy file trên $branch."
+                echo "File không tồn tại trên branch $branch"
               fi
             else
-              echo "Cảnh báo: Branch '$branch' không tồn tại trên repository."
+              echo "Không thể tìm thấy hoặc checkout branch: $branch"
             fi
             echo "-----------------------------------"
           done
