@@ -49,6 +49,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "Không có thay đổi nào để push."
           else
-            git commit -m "Lọc danh sách build: Chỉ giữ lại Android 13 5.15"
+            git commit -m "LỌC CÁC PHIÊN BẢN BUILD LKM CHO ANDROID 13 5.15"
             git push origin main
           fi
