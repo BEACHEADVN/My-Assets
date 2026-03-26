@@ -1,0 +1,53 @@
+name: LỌC CÁC PHIÊN BẢN BUILD LKM CHO ANDROID 13 5.15
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/Ayaka
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+
+      - name: Cài đặt yq
+        run: sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+
+      - name: LỌC VÀ ĐỊNH DẠNG TỰ ĐỘNG
+        run: |
+          cd remote-repo
+          FILE_PATH=".github/workflows/build-lkm.yml"
+          
+          if [ -f "$FILE_PATH" ]; then
+            # Sử dụng yq để lọc chính xác trong cấu trúc matrix
+            # Giữ lại các mục kmi có chứa 'android13-5.15'
+            yq -i '(.jobs.build-lkm.strategy.matrix.kmi[] | select(. == "android13-5.15*"))' "$FILE_PATH"
+            
+            # Nếu matrix của bạn dùng cấu trúc 'include' (như bạn viết trong jq)
+            # Hãy dùng dòng này thay thế:
+            # yq -i '.jobs.build-lkm.strategy.matrix.include |= map(select(.kernel_version == "5.15.170" or .kernel_version == "5.15.189"))' "$FILE_PATH"
+            
+            echo "--- Nội dung sau khi lọc ---"
+            cat "$FILE_PATH"
+          else
+            echo "Không tìm thấy file build-lkm.yml"
+            exit 1
+          fi
+
+      - name: Push Changes
+        run: |
+          cd remote-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .github/workflows/build-lkm.yml
+          
+          if git diff --staged --quiet; then
+            echo "Không có thay đổi nào để commit."
+          else
+            git commit -m "Chỉnh sửa tự động: Chỉ giữ lại Android 13 5.15"
+            git push origin main
+          fi
