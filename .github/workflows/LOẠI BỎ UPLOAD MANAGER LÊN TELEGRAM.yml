@@ -1,4 +1,4 @@
-name: LOẠI BỎ TELEGRAM BUILD MANAGER
+name: LOẠI BỎ UPLOAD MANAGER LÊN TELEGRAM
 on:
   workflow_dispatch:
 
