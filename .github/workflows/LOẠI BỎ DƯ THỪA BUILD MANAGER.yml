@@ -33,29 +33,29 @@ jobs:
             git checkout -B $branch origin/$branch
   
             if [ -f "$FILE_PATH" ]; then
-              # 1. Xóa job build-ksud-extra và các bước x86_64 bằng yq
-              yq -i 'del(.jobs["build-ksud-extra"])' "$FILE_PATH"
-              yq -i '.jobs["build-ksud"].strategy.matrix.include |= map(select(.target == "aarch64-linux-android"))' "$FILE_PATH"
-              yq -i '.jobs["build-manager"].steps |= map(select(.name != "Download x86_64 ksud"))' "$FILE_PATH"
+              # 1. Thực hiện xóa các phần dư thừa bằng yq
+              # Dùng toán tử 'eval' để gộp nhiều lệnh giúp file ổn định hơn
+              yq -i '
+                del(.jobs["build-ksud-extra"]) |
+                .jobs["build-ksud"].strategy.matrix.include |= map(select(.target == "aarch64-linux-android")) |
+                .jobs["build-manager"].steps |= map(select(.name != "Download x86_64 ksud"))
+              ' "$FILE_PATH"
 
-              # 2. Xóa các dòng chứa x86_64 bằng sed
+              # 2. Xóa các dòng chứa x86_64 trong phần scripts/strings bằng sed
               sed -i '/jniLibs\/x86_64/d' "$FILE_PATH"
               sed -i '/x86_64-linux-android\/release\/ksud/d' "$FILE_PATH"
 
-              # 3. FIX DÒNG TRỐNG: Thêm dòng trống trước các khối chính để file dễ đọc
-              # Thêm dòng trống trước 'on:', 'jobs:', và tên các job
-              sed -i '/^on:/i \\' "$FILE_PATH"
-              sed -i '/^jobs:/i \\' "$FILE_PATH"
-              sed -i '/  build-ksud:/i \\' "$FILE_PATH"
-              sed -i '/  build-manager:/i \\' "$FILE_PATH"
-              
-              # Xóa các dòng trống thừa (3 dòng trống liên tiếp thành 1)
-              sed -i 'N;/^\n$/D;P;D' "$FILE_PATH"
+              # 3. ĐỊNH DẠNG LẠI FILE: 
+              # Dùng yq để format lại chuẩn chỉnh, thụt lề 2 khoảng trắng
+              # Lệnh này sẽ tự động tạo các khoảng nghỉ hợp lý mà không gây lỗi line 2
+              yq -i '... style=""' "$FILE_PATH"
 
               git add "$FILE_PATH"
               if ! git diff --staged --quiet; then
                 git commit -m "LOẠI BỎ DƯ THỪA BUILD MANAGER"
                 echo "Committed on $branch"
+              else
+                echo "No changes on $branch"
               fi
             fi
             echo "-----------------------------"
