@@ -1,4 +1,4 @@
-name: SYNC UPLOAD TELEGRAM WORKFLOW (ALL BRANCHES)
+name: THÊM UPLOAD MANAGER TELEGRAM
 
 on:
   workflow_dispatch:
@@ -42,7 +42,7 @@ jobs:
 
           git add .github/workflows/upload-telegram.yml
 
-          git commit -m "Sync upload-telegram workflow from My-Assets (${{
+          git commit -m "THÊM UPLOAD MANAGER TELEGRAM TỪ My-Assets (${{
           matrix.branch }})" || echo "No changes"
 
           git push origin ${{ matrix.branch }}
