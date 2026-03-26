@@ -12,40 +12,45 @@ jobs:
           repository: BEACHEADVN/Ayaka
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
-          fetch-depth: 0 # QUAN TRỌNG: Phải lấy toàn bộ lịch sử để thấy các branch khác
+          fetch-depth: 0 # Lấy toàn bộ metadata để có thể chuyển branch
 
-      - name: LỌC TRÊN 3 BRANCH CHỈ ĐỊNH
+      - name: THỰC HIỆN LỌC TRÊN STABLE, BETA, CANARY
         run: |
           cd remote-repo/
           FILE_PATH=".github/workflows/build-lkm.yml"
           
-          # Cấu hình Git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Danh sách branch
+          # Danh sách 3 branch mục tiêu
           for branch in stable beta canary; do
             echo ">>> Đang xử lý branch: $branch"
             
-            # Buộc phải tạo track với remote branch
+            # Chuyển sang branch mục tiêu (tạo track nếu chưa có ở local)
             if git checkout $branch || git checkout -b $branch origin/$branch; then
               
               if [ -f "$FILE_PATH" ]; then
-                # Lọc chính xác Android 13 5.15
-                # Dùng dấu nháy đơn bao quanh regex để tránh shell hiểu lầm
-                sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
+                # LỌC CHÍNH XÁC: 
+                # Tìm các dòng có '- android' 
+                # Nếu dòng đó KHÔNG khớp chính xác 'android13-5.15', thực hiện xóa (d)
+                # Dấu $ ở cuối để đảm bảo không dính các ký tự thừa phía sau
+                sed -i '/- android/ { /android13-5.15$/ !d }' "$FILE_PATH"
                 
-                if git add "$FILE_PATH" && git commit -m "Chỉnh sửa tự động: Chỉ giữ lại Android 13 5.15 trên $branch"; then
-                  git push origin $branch
-                  echo "Đã cập nhật thành công branch: $branch"
+                git add "$FILE_PATH"
+                
+                # Kiểm tra nếu có thay đổi thì mới commit và push
+                if git diff --staged --quiet; then
+                   echo "Branch $branch đã chuẩn (không có thay đổi)."
                 else
-                  echo "Không có thay đổi nào cần commit trên branch: $branch"
+                   git commit -m "LỌC CÁC PHIÊN BẢN BUILD LKM CHO ANDROID 13 5.15"
+                   git push origin $branch
+                   echo "Đã cập nhật thành công branch: $branch"
                 fi
               else
-                echo "File không tồn tại trên branch $branch"
+                echo "Cảnh báo: Không tìm thấy file trên branch $branch"
               fi
             else
-              echo "Không thể tìm thấy hoặc checkout branch: $branch"
+              echo "Lỗi: Không thể checkout branch $branch"
             fi
             echo "-----------------------------------"
           done
