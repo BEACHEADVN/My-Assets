@@ -1,4 +1,4 @@
-name: CLEAN BUILD MANAGER (ANDROID ONLY)
+name: LOẠI BỎ DƯ THỪA BUILD MANAGER
 
 on:
   workflow_dispatch:
@@ -16,7 +16,12 @@ jobs:
           path: remote-repo
           fetch-depth: 0
 
-      - name: Clean build-manager.yml
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/bin/yq
+
+      - name: Patch build-manager.yml safely
         run: |
           cd remote-repo
           FILE_PATH=".github/workflows/build-manager.yml"
@@ -31,16 +36,32 @@ jobs:
             git checkout -B $branch origin/$branch
 
             if [ -f "$FILE_PATH" ]; then
-              sed -i '/^  build-ksud-extra:/,/^  build-manager:/d' "$FILE_PATH"
-              sed -i '/x86_64-linux-android/,+1d' "$FILE_PATH"
-              sed -i '/Download x86_64 ksud/,+4d' "$FILE_PATH"
-              sed -i '/jniLibs\/x86_64/d' "$FILE_PATH"
-              sed -i '/x86_64-linux-android\/release\/ksud/d' "$FILE_PATH"
+
+              yq -i 'del(.jobs["build-ksud-extra"])' "$FILE_PATH"
+
+              yq -i '
+                .jobs["build-ksud"].strategy.matrix.include
+                |= map(select(.target == "aarch64-linux-android"))
+              ' "$FILE_PATH"
+
+              yq -i '
+                .jobs["build-manager"].steps
+                |= map(select(.name != "Download x86_64 ksud"))
+              ' "$FILE_PATH"
+
+              yq -i '
+                .jobs["build-manager"].steps
+                |= map(
+                  if .run then
+                    .run |= sub("(?m)^.*x86_64.*\\n?"; "")
+                  else . end
+                )
+              ' "$FILE_PATH"
 
               git add "$FILE_PATH"
 
               if ! git diff --staged --quiet; then
-                git commit -m "Remove unused ksud targets (keep ARM64 only)"
+                git commit -m "Clean ksud targets (ARM64 only, safe patch)"
               fi
             fi
           done
