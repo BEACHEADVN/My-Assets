@@ -53,7 +53,7 @@ jobs:
             git add "$FILE_PATH"
   
             if ! git diff --staged --quiet; then
-              git commit -m "Clean ksud targets (ARM64 only, safe patch)"
+              git commit -m "LOẠI BỎ DƯ THỪA BUILD MANAGER"
               echo "Committed on $branch"
             else
               echo "No changes on $branch"
