@@ -63,7 +63,7 @@ jobs:
           git add .github/workflows/upload-telegram.yml
           git add .github/workflows/build-manager.yml
 
-          git commit -m "THÊM UPLOAD MANAGER TELEGRAM + tích hợp build (${{
+          git commit -m "THÊM UPLOAD MANAGER TELEGRAM (${{
           matrix.branch }})" || echo "No changes"
 
           git push origin HEAD:refs/heads/${{ matrix.branch }}
