@@ -1,4 +1,4 @@
-name: THÊM UPLOAD MANAGER LÊN TELEGRAM
+name: THÊM UPLOAD MANAGER TELEGRAM
 
 on:
   workflow_dispatch:
@@ -12,10 +12,12 @@ jobs:
         branch: [stable, beta, canary]
 
     steps:
-      - name: 📥 Checkout repo (theo branch)
+      - name: 📥 Checkout repo Ayaka
         uses: actions/checkout@v4
         with:
+          repository: BEACHEADVN/Ayaka
           ref: ${{ matrix.branch }}
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: 📥 Download workflow từ My-Assets
         run: |
@@ -30,13 +32,23 @@ jobs:
         run: |
           mv upload-manager-telegram.yml .github/workflows/upload-telegram.yml
 
-      - name: 🧩 Append job (safe)
+      - name: 🧩 Chèn job upload-telegram vào build-manager.yml
         run: |
-         echo "" >> .github/workflows/build-manager.yml
-         echo "  upload-telegram:" >> .github/workflows/build-manager.yml
-         echo "    needs: build-manager" >> .github/workflows/build-manager.yml
-         echo "    uses: ./.github/workflows/upload-telegram.yml" >> .github/workflows/build-manager.yml
-         echo "    secrets: inherit" >> .github/workflows/build-manager.yml
+          FILE=".github/workflows/build-manager.yml"
+
+          if [ -f "$FILE" ]; then
+            if ! grep -q "upload-telegram:" "$FILE"; then
+              echo "" >> "$FILE"
+              echo "  upload-telegram:" >> "$FILE"
+              echo "    needs: build-manager" >> "$FILE"
+              echo "    uses: ./.github/workflows/upload-telegram.yml" >> "$FILE"
+              echo "    secrets: inherit" >> "$FILE"
+            else
+              echo "Đã tồn tại upload-telegram, bỏ qua"
+            fi
+          else
+            echo "Không tìm thấy build-manager.yml"
+          fi
 
       - name: 🔍 Kiểm tra thay đổi
         run: |
@@ -51,7 +63,7 @@ jobs:
           git add .github/workflows/upload-telegram.yml
           git add .github/workflows/build-manager.yml
 
-          git commit -m "THÊM UPLOAD MANAGER TELEGRAM (${{
+          git commit -m "THÊM UPLOAD MANAGER TELEGRAM + tích hợp build (${{
           matrix.branch }})" || echo "No changes"
 
           git push origin ${{ matrix.branch }}
