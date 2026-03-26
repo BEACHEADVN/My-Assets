@@ -8,75 +8,75 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          repository: BEACHEADVN/Ayaka
-          token: ${{ secrets.GH_PAT }}
-          path: remote-repo
-          fetch-depth: 0
-
-      - name: Install yq
-        run: |
-          sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/bin/yq
-
-      - name: Patch build-manager.yml safely
-        run: |
-          cd remote-repo
-          FILE_PATH=".github/workflows/build-manager.yml"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          for branch in stable beta canary; do
-            echo ">>> Processing $branch"
-
-            git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
-            git checkout -B $branch origin/$branch
-
-            if [ -f "$FILE_PATH" ]; then
-
-              yq -i 'del(.jobs["build-ksud-extra"])' "$FILE_PATH"
-
-              yq -i '
-                .jobs["build-ksud"].strategy.matrix.include
-                |= map(select(.target == "aarch64-linux-android"))
-              ' "$FILE_PATH"
-
-              yq -i '
-                .jobs["build-manager"].steps
-                |= map(select(.name != "Download x86_64 ksud"))
-              ' "$FILE_PATH"
-
-              yq -i '
-                .jobs["build-manager"].steps
-                |= map(
-                  if .run then
-                    .run |= sub("(?m)^.*x86_64.*\\n?"; "")
-                  else . end
-                )
-              ' "$FILE_PATH"
-
-              git add "$FILE_PATH"
-
-              if ! git diff --staged --quiet; then
-                git commit -m "Clean ksud targets (ARM64 only, safe patch)"
-              fi
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        repository: BEACHEADVN/Ayaka
+        token: ${{ secrets.GH_PAT }}
+        path: remote-repo
+        fetch-depth: 0
+  
+    - name: Install yq
+      run: |
+        sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/bin/yq
+  
+    - name: Patch build-manager.yml safely
+      run: |
+        cd remote-repo
+        FILE_PATH=".github/workflows/build-manager.yml"
+  
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+  
+        for branch in stable beta canary; do
+          echo ">>> Processing $branch"
+  
+          git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
+          git checkout -B $branch origin/$branch
+  
+          if [ -f "$FILE_PATH" ]; then
+  
+            echo "Remove build-ksud-extra"
+            yq -i 'del(.jobs["build-ksud-extra"])' "$FILE_PATH"
+  
+            echo "Keep only ARM64"
+            yq -i '.jobs["build-ksud"].strategy.matrix.include |= map(select(.target == "aarch64-linux-android"))' "$FILE_PATH"
+  
+            echo "Remove x86_64 download step"
+            yq -i '.jobs["build-manager"].steps |= map(select(.name != "Download x86_64 ksud"))' "$FILE_PATH"
+  
+            echo "Remove x86_64 lines"
+            sed -i '/jniLibs\/x86_64/d' "$FILE_PATH"
+            sed -i '/x86_64-linux-android\/release\/ksud/d' "$FILE_PATH"
+  
+            git add "$FILE_PATH"
+  
+            if ! git diff --staged --quiet; then
+              git commit -m "Clean ksud targets (ARM64 only, safe patch)"
+              echo "Committed on $branch"
+            else
+              echo "No changes on $branch"
             fi
-          done
-
-      - name: Push changes
-        run: |
-          cd remote-repo
-
-          for branch in stable beta canary; do
-            git checkout $branch
-
-            LOCAL=$(git rev-parse HEAD)
-            REMOTE=$(git rev-parse origin/$branch)
-
-            if [ "$LOCAL" != "$REMOTE" ]; then
-              git push origin HEAD:refs/heads/$branch --force
-            fi
-          done
+          fi
+  
+          echo "-----------------------------"
+        done
+  
+    - name: Push changes
+      run: |
+        cd remote-repo
+  
+        for branch in stable beta canary; do
+          git checkout $branch
+  
+          LOCAL=$(git rev-parse HEAD)
+          REMOTE=$(git rev-parse origin/$branch)
+  
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            echo ">>> Pushing $branch"
+            git push origin HEAD:refs/heads/$branch --force
+          else
+            echo "No push needed for $branch"
+          fi
+        done
