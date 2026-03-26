@@ -1,71 +1,61 @@
-name: LOẠI BỎ DƯ THỪA BUILD MANAGER
+name: CLEAN BUILD MANAGER (ANDROID ONLY)
+
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-patch-and-push:
-runs-on: ubuntu-latest
-steps:
-- name: Checkout Repository
-uses: actions/checkout@v4
-with:
-repository: BEACHEADVN/Ayaka
-token: ${{ secrets.GH_PAT }}
-path: remote-repo
-fetch-depth: 0
+  patch-and-push:
+    runs-on: ubuntu-latest
 
-```
-  - name: Clean build-manager.yml
-    run: |
-      cd remote-repo/
-      FILE_PATH=".github/workflows/build-manager.yml"
-      
-      git config user.name "github-actions[bot]"
-      git config user.email "github-actions[bot]@users.noreply.github.com"
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/Ayaka
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+          fetch-depth: 0
 
-      for branch in stable beta canary; do
-        echo ">>> Đang xử lý branch: $branch"
-        
-        git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
-        git checkout -B $branch origin/$branch
-        
-        if [ -f "$FILE_PATH" ]; then
+      - name: Clean build-manager.yml
+        run: |
+          cd remote-repo
+          FILE_PATH=".github/workflows/build-manager.yml"
 
-          echo "---- Xóa build-ksud-extra ----"
-          sed -i '/build-ksud-extra:/,/with:/d' "$FILE_PATH"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          echo "---- Xóa x86_64 target ----"
-          sed -i '/x86_64-linux-android/,+1d' "$FILE_PATH"
+          for branch in stable beta canary; do
+            echo ">>> Processing $branch"
 
-          echo "---- Xóa download x86_64 ----"
-          sed -i '/Download x86_64 ksud/,+4d' "$FILE_PATH"
+            git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
+            git checkout -B $branch origin/$branch
 
-          echo "---- Xóa jniLibs x86_64 ----"
-          sed -i '/jniLibs\/x86_64/d' "$FILE_PATH"
-          sed -i '/x86_64-linux-android\/release\/ksud/d' "$FILE_PATH"
+            if [ -f "$FILE_PATH" ]; then
+              sed -i '/^  build-ksud-extra:/,/^  build-manager:/d' "$FILE_PATH"
+              sed -i '/x86_64-linux-android/,+1d' "$FILE_PATH"
+              sed -i '/Download x86_64 ksud/,+4d' "$FILE_PATH"
+              sed -i '/jniLibs\/x86_64/d' "$FILE_PATH"
+              sed -i '/x86_64-linux-android\/release\/ksud/d' "$FILE_PATH"
 
-          # Xóa dòng trống dư
-          sed -i '/^$/d' "$FILE_PATH" || true
+              git add "$FILE_PATH"
 
-          git add "$FILE_PATH"
-          
-          if ! git diff --staged --quiet; then
-             git commit -m "Remove unused ksud targets (keep ARM64 only)"
-             echo "Branch $branch: Đã tạo commit."
-          else
-             echo "Branch $branch: Không có thay đổi."
-          fi
-        fi
-        echo "-----------------------------------"
-      done
+              if ! git diff --staged --quiet; then
+                git commit -m "Remove unused ksud targets (keep ARM64 only)"
+              fi
+            fi
+          done
 
-  - name: Push changes
-    run: |
-      cd remote-repo/
-      for branch in stable beta canary; do
-        if git checkout $branch && [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$branch)" ]; then
-           echo ">>> Push $branch"
-           git push origin HEAD:refs/heads/$branch --force
-        fi
-      done
-```
+      - name: Push changes
+        run: |
+          cd remote-repo
+
+          for branch in stable beta canary; do
+            git checkout $branch
+
+            LOCAL=$(git rev-parse HEAD)
+            REMOTE=$(git rev-parse origin/$branch)
+
+            if [ "$LOCAL" != "$REMOTE" ]; then
+              git push origin HEAD:refs/heads/$branch --force
+            fi
+          done
