@@ -25,15 +25,13 @@ jobs:
           for branch in stable beta canary; do
             echo ">>> Đang xử lý branch: $branch"
             
-            # Ép buộc đồng bộ với remote branch
-            git fetch origin $branch
+            # Sử dụng refs/heads/ để tránh nhầm lẫn với Tag cùng tên
+            git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
             git checkout -B $branch origin/$branch
             
             if [ -f "$FILE_PATH" ]; then
-              # Lọc: Xóa sạch mọi dòng có '- android' ngoại trừ 'android13-5.15'
+              # Lọc chính xác Android 13 5.15
               sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
-              
-              # Dọn dẹp dòng trống thừa
               sed -i '/^$/d' "$FILE_PATH" 2>/dev/null || true
 
               git add "$FILE_PATH"
@@ -52,9 +50,10 @@ jobs:
         run: |
           cd remote-repo/
           for branch in stable beta canary; do
-            # Kiểm tra xem có commit mới để push không
+            # Kiểm tra commit mới
             if git checkout $branch && [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$branch)" ]; then
                echo ">>> Đang Push branch: $branch"
-               git push origin $branch --force
+               # Chỉ định rõ ràng push vào refs/heads/ để sửa lỗi ambiguous
+               git push origin HEAD:refs/heads/$branch --force
             fi
           done
