@@ -17,7 +17,7 @@ jobs:
         with:
           repository: BEACHEADVN/Ayaka
           ref: ${{ matrix.branch }}
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GH_PAT }}
 
       - name: 📥 Download workflow từ My-Assets
         run: |
