@@ -1,5 +1,4 @@
-name: CLEAN BUILD MANAGER (ANDROID ONLY)
-
+name: LOẠI BỎ DƯ THỪA BUILD MANAGER
 on:
 workflow_dispatch:
 
