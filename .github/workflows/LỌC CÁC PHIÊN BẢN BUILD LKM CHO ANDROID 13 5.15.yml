@@ -16,24 +16,40 @@ jobs:
       - name: Cài đặt yq
         run: sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
 
-      - name: LỌC VÀ ĐỊNH DẠNG TỰ ĐỘNG
+      - name: LỌC PHIÊN BẢN (GIỮ NGUYÊN CẤU TRÚC FILE)
         run: |
-          cd remote-repo
+          cd remote-repo/
           FILE_PATH=".github/workflows/build-lkm.yml"
-          
+
           if [ -f "$FILE_PATH" ]; then
-            # Sử dụng yq để lọc chính xác trong cấu trúc matrix
-            # Giữ lại các mục kmi có chứa 'android13-5.15'
-            yq -i '(.jobs.build-lkm.strategy.matrix.kmi[] | select(. == "android13-5.15*"))' "$FILE_PATH"
+            echo "--- Nội dung TRƯỚC khi lọc ---"
+            cat "$FILE_PATH"
             
-            # Nếu matrix của bạn dùng cấu trúc 'include' (như bạn viết trong jq)
-            # Hãy dùng dòng này thay thế:
-            # yq -i '.jobs.build-lkm.strategy.matrix.include |= map(select(.kernel_version == "5.15.170" or .kernel_version == "5.15.189"))' "$FILE_PATH"
-            
-            echo "--- Nội dung sau khi lọc ---"
+            # Lệnh sed này sẽ:
+            # Tìm các dòng có '- android'
+            # Nếu dòng đó KHÔNG chứa '5.15' thì sẽ XÓA dòng đó
+            # Các dòng khác (name, on, jobs, uses...) được giữ nguyên 100%
+            sed -i '/- android/ { /5.15/ !d }' "$FILE_PATH"
+
+            echo "--- Nội dung SAU khi lọc (Giống sửa tay) ---"
             cat "$FILE_PATH"
           else
             echo "Không tìm thấy file build-lkm.yml"
             exit 1
           fi
+
+      - name: Push Changes
+        run: |
+          cd remote-repo/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           
+          git add .github/workflows/build-lkm.yml
+          
+          # Chỉ commit nếu có sự thay đổi thực sự
+          if git diff --staged --quiet; then
+            echo "Không có thay đổi nào để push."
+          else
+            git commit -m "Lọc danh sách build: Chỉ giữ lại Android 13 5.15"
+            git push origin main
+          fi
