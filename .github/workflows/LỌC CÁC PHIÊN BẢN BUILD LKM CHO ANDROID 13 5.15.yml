@@ -3,52 +3,52 @@ on:
   workflow_dispatch:
 
 jobs:
-  patch-file:
+  patch-all-branches:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Destination Repo
+      - name: Checkout Repo
         uses: actions/checkout@v4
         with:
           repository: BEACHEADVN/Ayaka
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
+          fetch-depth: 0 # Lấy toàn bộ lịch sử và branch
 
-      - name: Cài đặt yq
-        run: sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
-
-      - name: LỌC PHIÊN BẢN (GIỮ NGUYÊN CẤU TRÚC FILE)
+      - name: LỌC VÀ PUSH CHO TẤT CẢ BRANCH
         run: |
           cd remote-repo/
           FILE_PATH=".github/workflows/build-lkm.yml"
-
-          if [ -f "$FILE_PATH" ]; then
-            echo "--- Nội dung TRƯỚC khi lọc ---"
-            cat "$FILE_PATH"
-            
-            # Lệnh sed này sẽ:
-            # Chỉ giữ lại dòng khớp chính xác cụm 'android13-5.15'
-            # Các dòng có '- android' nhưng KHÔNG khớp 'android13-5.15' sẽ bị xóa
-            sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
-
-            echo "--- Nội dung SAU khi lọc (Giống sửa tay) ---"
-            cat "$FILE_PATH"
-          else
-            echo "Không tìm thấy file build-lkm.yml"
-            exit 1
-          fi
-
-      - name: Push Changes
-        run: |
-          cd remote-repo/
+          
+          # Cấu hình Git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add .github/workflows/build-lkm.yml
-          
-          # Chỉ commit nếu có sự thay đổi thực sự
-          if git diff --staged --quiet; then
-            echo "Không có thay đổi nào để push."
-          else
-            git commit -m "LỌC CÁC PHIÊN BẢN BUILD LKM CHO ANDROID 13 5.15"
-            git push origin main
-          fi
+
+          # Lấy danh sách các branch từ remote (loại bỏ HEAD)
+          branches=$(git branch -r | grep -v "origin/HEAD" | sed 's/origin\///g')
+
+          for branch in $branches; do
+            echo "--- Đang xử lý branch: $branch ---"
+            
+            # Chuyển sang branch đó
+            git checkout $branch
+            
+            if [ -f "$FILE_PATH" ]; then
+              # Lọc chính xác Android 13 5.15
+              sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
+              
+              git add "$FILE_PATH"
+              
+              # Kiểm tra xem có thay đổi không trước khi commit
+              if git diff --staged --quiet; then
+                echo "Branch $branch đã sạch hoặc không có gì thay đổi."
+              else
+                git commit -m "Chỉnh sửa tự động: Chỉ giữ lại Android 13 5.15 cho branch $branch"
+                git push origin $branch
+                echo "Đã push thay đổi lên branch $branch."
+              fi
+            else
+              echo "File $FILE_PATH không tồn tại trên branch $branch, bỏ qua."
+            fi
+            
+            echo "-----------------------------------"
+          done
