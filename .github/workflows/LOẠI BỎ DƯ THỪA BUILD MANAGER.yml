@@ -33,25 +33,32 @@ jobs:
             git checkout -B $branch origin/$branch
   
             if [ -f "$FILE_PATH" ]; then
-              # BƯỚC CẤP CỨU: Xóa bỏ các dòng trống hoặc dòng lỗi ở đầu file (nếu có)
-              # Xóa các dòng chỉ chứa khoảng trắng hoặc dấu gạch chéo ngược lỗi
+              # BƯỚC 1: Xóa rác và dòng lỗi cũ để tránh lỗi line 2
               sed -i '/^[[:space:]]*$/d' "$FILE_PATH"
               sed -i '/^\\$/d' "$FILE_PATH"
 
-              # 1. Thực hiện xóa các phần dư thừa bằng yq
-              # Thêm 'eval' và bọc trong nháy đơn để bảo vệ cú pháp
+              # BƯỚC 2: Xử lý dữ liệu bằng yq
               yq -i '
                 del(.jobs["build-ksud-extra"]) |
                 .jobs["build-ksud"].strategy.matrix.include |= map(select(.target == "aarch64-linux-android")) |
                 .jobs["build-manager"].steps |= map(select(.name != "Download x86_64 ksud"))
               ' "$FILE_PATH"
 
-              # 2. Xóa các dòng chứa x86_64 trong phần scripts
+              # BƯỚC 3: Xóa các dòng x86_64 trong script
               sed -i '/jniLibs\/x86_64/d' "$FILE_PATH"
               sed -i '/x86_64-linux-android\/release\/ksud/d' "$FILE_PATH"
 
-              # 3. ĐỊNH DẠNG LẠI (Dùng định dạng mặc định của yq để tự giãn dòng)
-              yq -i '... style=""' "$FILE_PATH"
+              # BƯỚC 4: HỒI SINH DÒNG TRẮNG (Phân tách các khối cho dễ nhìn)
+              # Thêm 1 dòng trống TRƯỚC các từ khóa quan trọng
+              sed -i '/^on:/i \\' "$FILE_PATH"
+              sed -i '/^jobs:/i \\' "$FILE_PATH"
+              sed -i '/^  build-ksud:/i \\' "$FILE_PATH"
+              sed -i '/^  build-manager:/i \\' "$FILE_PATH"
+              # Thêm dòng trống trước mỗi Step (dòng bắt đầu bằng - name:)
+              sed -i '/^      - name:/i \\' "$FILE_PATH"
+              
+              # Dọn dẹp: Nếu có 2 dòng trống liên tiếp thì chỉ giữ 1
+              sed -i '/^$/N;/^\n$/D' "$FILE_PATH"
 
               git add "$FILE_PATH"
               if ! git diff --staged --quiet; then
