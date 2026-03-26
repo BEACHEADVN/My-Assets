@@ -30,25 +30,13 @@ jobs:
         run: |
           mv upload-manager-telegram.yml .github/workflows/upload-telegram.yml
 
-      - name: 🧩 Chèn job upload-telegram vào build-manager.yml
+      - name: 🧩 Append job (safe)
         run: |
-          FILE=".github/workflows/build-manager.yml"
-
-          if [ -f "$FILE" ]; then
-            if ! grep -q "upload-telegram:" "$FILE"; then
-              cat << 'EOF' >> "$FILE"
-
-  upload-telegram:
-    needs: build-manager
-    uses: ./.github/workflows/upload-telegram.yml
-    secrets: inherit
-EOF
-            else
-              echo "Đã tồn tại upload-telegram, bỏ qua"
-            fi
-          else
-            echo "Không tìm thấy build-manager.yml"
-          fi
+         echo "" >> .github/workflows/build-manager.yml
+         echo "  upload-telegram:" >> .github/workflows/build-manager.yml
+         echo "    needs: build-manager" >> .github/workflows/build-manager.yml
+         echo "    uses: ./.github/workflows/upload-telegram.yml" >> .github/workflows/build-manager.yml
+         echo "    secrets: inherit" >> .github/workflows/build-manager.yml
 
       - name: 🔍 Kiểm tra thay đổi
         run: |
