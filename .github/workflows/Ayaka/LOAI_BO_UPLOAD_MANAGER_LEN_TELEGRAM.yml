@@ -1,6 +1,7 @@
 name: LOẠI BỎ UPLOAD MANAGER LÊN TELEGRAM
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   patch-and-push:
