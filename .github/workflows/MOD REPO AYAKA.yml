@@ -13,11 +13,11 @@ jobs:
 
   step3:
     needs: step2
-    uses: BEACHEADVN/My-Assets/.github/workflows/LOAI_BO_UPLOAD_MANAGER_LEN_TELEGRAM@main
+    uses: BEACHEADVN/My-Assets/.github/workflows/LOAI_BO_UPLOAD_MANAGER_LEN_TELEGRAM.yml@main
 
   step4:
     needs: step3
-    uses: BEACHEADVN/My-Assets/.github/workflows/LOAI_BO_DU_THUA_BUILD_MANAGER@main
+    uses: BEACHEADVN/My-Assets/.github/workflows/LOAI_BO_DU_THUA_BUILD_MANAGER.yml@main
 
   step5:
     needs: step4
