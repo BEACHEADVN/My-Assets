@@ -25,19 +25,24 @@ jobs:
           for branch in stable beta canary; do
             echo ">>> Processing $branch"
 
-            # Checkout branch
             git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
             git checkout -B $branch origin/$branch
 
-            # Download đúng branch tương ứng
+            # Tải file gốc
             curl -L \
             https://raw.githubusercontent.com/WildKernels/Wild_KSU/$branch/.github/workflows/build-manager.yml \
             -o .github/workflows/build-manager.yml
 
+            # 🔥 XÓA trigger tự chạy (push + pull_request)
+            sed -i '/^on:/,/^jobs:/{
+              /push:/,/^[^ ]/d
+              /pull_request:/,/^[^ ]/d
+            }' .github/workflows/build-manager.yml
+
             git add .github/workflows/build-manager.yml
 
             if ! git diff --staged --quiet; then
-              git commit -m "HOÀN NGUYÊN BUILD.YML TỪ REPO GỐC ($branch)"
+              git commit -m "HOÀN NGUYÊN BUILD.YML + DISABLE AUTO RUN ($branch)"
               git push origin HEAD:refs/heads/$branch
               echo "Pushed $branch"
             else
