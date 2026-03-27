@@ -1,0 +1,69 @@
+name: THÊM UPLOAD MANAGER TELEGRAM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        branch: [stable, beta, canary]
+
+    steps:
+      - name: 📥 Checkout repo Ayaka
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/Ayaka
+          ref: ${{ matrix.branch }}
+          token: ${{ secrets.GH_PAT }}
+
+      - name: 📥 Download workflow từ My-Assets
+        run: |
+          curl -L \
+          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/upload-manager-telegram.yml \
+          -o upload-manager-telegram.yml
+
+      - name: 📂 Tạo thư mục workflows nếu chưa có
+        run: mkdir -p .github/workflows
+
+      - name: 📦 Move file vào đúng chỗ
+        run: |
+          mv upload-manager-telegram.yml .github/workflows/upload-telegram.yml
+
+      - name: 🧩 Chèn job upload-telegram vào build-manager.yml
+        run: |
+          FILE=".github/workflows/build-manager.yml"
+
+          if [ -f "$FILE" ]; then
+            if ! grep -q "upload-telegram:" "$FILE"; then
+              echo "" >> "$FILE"
+              echo "  upload-telegram:" >> "$FILE"
+              echo "    needs: build-manager" >> "$FILE"
+              echo "    uses: ./.github/workflows/upload-telegram.yml" >> "$FILE"
+              echo "    secrets: inherit" >> "$FILE"
+            else
+              echo "Đã tồn tại upload-telegram, bỏ qua"
+            fi
+          else
+            echo "Không tìm thấy build-manager.yml"
+          fi
+
+      - name: 🔍 Kiểm tra thay đổi
+        run: |
+          git status
+          ls -R .github/workflows
+
+      - name: 🚀 Commit & Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add .github/workflows/upload-telegram.yml
+          git add .github/workflows/build-manager.yml
+
+          git commit -m "THÊM UPLOAD MANAGER TELEGRAM (${{
+          matrix.branch }})" || echo "No changes"
+
+          git push origin HEAD:refs/heads/${{ matrix.branch }}
