@@ -1,0 +1,55 @@
+name: ĐỔI TÊN KERNEL ZIP ĐƯỢC BUILD RA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-file-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/GKI_KernelSU_SUSFS
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+
+      - name: ĐỔI TÊN
+        run: |
+          cd remote-repo/.github/workflows/
+          
+          echo "--- Kiểm tra nội dung hiện tại ---"
+          CURRENT_LINE=$(grep "FILE_NAME" build.yml | grep "\$KERNEL_VERSION")
+          echo "Dòng tìm thấy: $CURRENT_LINE"
+          
+          # Kiểm tra nếu dòng KHÔNG chứa chữ "Ayaka" thì mới sửa
+          if [[ "$CURRENT_LINE" != *"Ayaka"* ]]; then
+            echo "Chưa có chữ Ayaka, tiến hành sửa..."
+            sed -i '/FILE_NAME.*\$KERNEL_VERSION/s/\$KERNEL_VERSION/Ayaka_\$KERNEL_VERSION/' build.yml
+            
+            echo "--- Nội dung sau khi sửa ---"
+            grep "FILE_NAME" build.yml | grep "Ayaka_"
+          else
+            echo "Dòng này đã có chữ Ayaka rồi, bỏ qua không sửa nữa."
+          fi
+
+      - name: Push Changes
+        run: |
+          cd remote-repo/.github/workflows/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Kiểm tra xem có sự thay đổi nào để commit không
+          if git diff --exit-code build.yml > /dev/null; then
+            echo "Không có thay đổi nào để push."
+          else
+            git add build.yml
+            git commit -m "ĐỔI TÊN KERNEL ZIP ĐƯỢC BUILD RA"
+            git push origin main
+          fi
+          
+      - name: KIỂM TRA
+        run: |
+          cd remote-repo/.github/workflows/
+          echo "NỘI DUNG FILE build.yml (Dòng FILE_NAME):"
+          grep -n "FILE_NAME" build.yml | grep "Ayaka_"
