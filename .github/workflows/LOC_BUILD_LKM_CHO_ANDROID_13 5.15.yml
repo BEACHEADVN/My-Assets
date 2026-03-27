@@ -5,6 +5,7 @@ on:
 
 jobs:
   patch-and-push:
+    name: LỌC CÁC PHIÊN BẢN BUILD LKM CHO ANDROID 13 5.15 (${{ matrix.branch }})
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
