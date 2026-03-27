@@ -6,7 +6,7 @@ on:
 jobs:
   step0:
     name: Restore build-manager.yml
-    uses: BEACHEADVN/My-Assets/.github/workflows/HOAN_NGUYEN_BUILD.YML_TU_REPO_GOC.yml@main
+    uses: BEACHEADVN/My-Assets/.github/workflows/HOAN_NGUYEN_BUILD_YML_TU_REPO_GOC.yml@main
     secrets: inherit
 
   step1:
