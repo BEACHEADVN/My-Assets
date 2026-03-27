@@ -1,6 +1,7 @@
 name: LOẠI BỎ DƯ THỪA BUILD MANAGER
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   patch-and-push:
