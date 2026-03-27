@@ -1,4 +1,4 @@
-name: HOÀN NGUYÊN BUILD MANAGER (OPTION)
+name: HOÀN NGUYÊN BUILD MANAGER
 
 on:
   workflow_dispatch:
