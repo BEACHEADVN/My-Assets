@@ -1,0 +1,80 @@
+name: THAY URL WILD KSU THÀNH AYAKA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-setup-url:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/GKI_KernelSU_SUSFS
+          token: ${{ secrets.GH_PAT }} # Cần quyền 'workflow'
+          path: remote-repo
+
+      - name: SỬA WKSU ACTION.YML
+        run: |
+          cd remote-repo/.github/actions/wksu/
+          
+          OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU"
+          NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
+          OLD_DIR1="Wild_KSU"
+          OLD_DIR2="Wild KSU"
+          NEW_DIR="Ayaka"
+          
+          # Sửa trực tiếp file action.yml
+          sed -i "s|$OLD_URL|$NEW_URL|g" action.yml
+          sed -i "s|$OLD_DIR1|$NEW_DIR|g" action.yml
+          sed -i "s|$OLD_DIR2|$NEW_DIR|g" action.yml
+
+      - name: SỬA BUILD.YML
+        run: |
+          cd remote-repo/.github/workflows/
+          OLD="Wild KSU"
+          NEW="Ayaka"
+          sed -i "s|$OLD|$NEW|g" build.yml
+
+      - name: Push Changes
+        run: |
+          # Di chuyển về thư mục gốc của repo để git add chính xác
+          cd remote-repo
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Kiểm tra trạng thái file (tùy chọn, giúp debug trong log)
+          git status
+          
+          # Thêm tất cả các file đã sửa (bao gồm action.yml và build.yml)
+          git add .github/actions/wksu/action.yml
+          git add .github/workflows/build.yml
+          
+          # Hoặc dùng git add . để thêm tất cả thay đổi
+          # git add .
+
+          # Commit nếu có thay đổi, tránh báo lỗi nếu không có gì mới
+          if git diff-index --quiet HEAD; then
+            echo "Không có thay đổi nào để commit."
+          else
+            git commit -m "THAY ĐỔI WILD_KSU THÀNH AYAKA"
+            git push origin main
+          fi
+          
+      - name: KIỂM TRA SAU KHI PUSH
+        run: |
+          echo "=== NỘI DUNG WKSU ACTION.YML==="
+          echo "=== NỘI DUNG WKSU ACTION.YML==="
+          echo "=== NỘI DUNG WKSU ACTION.YML==="
+          sleep 5
+          TARGET_FILE="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/actions/wksu/action.yml"
+          # Kiểm tra xem URL mới đã xuất hiện trên server chưa
+          curl -H "Authorization: token ${{ secrets.GH_PAT }}" -sL $TARGET_FILE
+
+          echo "=== NỘI DUNG BUILD.YML==="
+          echo "=== NỘI DUNG BUILD.YML==="
+          echo "=== NỘI DUNG BUILD.YML==="
+          TARGET_FILE="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/workflows/build.yml"
+          # Kiểm tra xem URL mới đã xuất hiện trên server chưa
+          curl -H "Authorization: token ${{ secrets.GH_PAT }}" -sL $TARGET_FILE
