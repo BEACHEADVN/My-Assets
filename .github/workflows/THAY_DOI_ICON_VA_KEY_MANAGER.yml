@@ -6,6 +6,7 @@ on:
 
 jobs:
   sync-and-rebrand:
+    name: THAY ICON VÀ BẢN QUYỀN MANAGER
     runs-on: ubuntu-latest
     strategy:
       matrix:
