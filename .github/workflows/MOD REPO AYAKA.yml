@@ -4,15 +4,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  step0:
+    name: Restore build-manager.yml
+    uses: BEACHEADVN/My-Assets/.github/workflows/HOAN_NGUYEN_BUILD.YML_TU_REPO_GOC.yml@main
+    secrets: inherit
+
   step1:
+    needs: step0
     uses: BEACHEADVN/My-Assets/.github/workflows/THAY_DOI_ICON_VA_KEY_MANAGER.yml@main
     secrets: inherit
 
   step2:
+    needs: step0
     uses: BEACHEADVN/My-Assets/.github/workflows/LOC_BUILD_LKM_CHO_ANDROID_13 5.15.yml@main
     secrets: inherit
 
   step3:
+    needs: step0
     uses: BEACHEADVN/My-Assets/.github/workflows/LOAI_BO_UPLOAD_MANAGER_LEN_TELEGRAM.yml@main
     secrets: inherit
 
