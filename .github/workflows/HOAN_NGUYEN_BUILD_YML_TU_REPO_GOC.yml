@@ -20,6 +20,7 @@ on:
 
 jobs:
   sync:
+    name: HOÀN NGUYÊN BUILD MANAGER TỪ REPO GỐC (${{ matrix.branch }})
     runs-on: ubuntu-latest
 
     steps:
