@@ -12,6 +12,12 @@ on:
           - "true"
           - "false"
 
+  workflow_call:
+    inputs:
+      disable_auto:
+        required: false
+        type: string
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -32,18 +38,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          DISABLE_AUTO="${{ inputs.disable_auto || 'true' }}"
+
           for branch in stable beta canary; do
             echo ">>> Processing $branch"
 
             git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
             git checkout -B $branch origin/$branch
 
-            # Tải file gốc
             curl -L \
               https://raw.githubusercontent.com/WildKernels/Wild_KSU/$branch/.github/workflows/build-manager.yml \
               -o build-manager.yml
 
-            if [ "${{ inputs.disable_auto }}" = "true" ]; then
+            if [ "$DISABLE_AUTO" = "true" ]; then
               echo ">>> Disable auto trigger"
 
               awk '
@@ -58,7 +65,6 @@ jobs:
               /^jobs:/ {skip=0}
               !skip {print}
               ' build-manager.yml > fixed.yml
-
             else
               echo ">>> Keep original trigger"
               cp build-manager.yml fixed.yml
@@ -71,7 +77,7 @@ jobs:
             git add .github/workflows/build-manager.yml
 
             if ! git diff --staged --quiet; then
-              git commit -m "RESTORE build-manager.yml (disable_auto=${{ inputs.disable_auto }}) [$branch]"
+              git commit -m "RESTORE build-manager.yml (disable_auto=$DISABLE_AUTO) [$branch]"
               git push origin HEAD:refs/heads/$branch
               echo "Pushed $branch"
             else
