@@ -1,0 +1,59 @@
+
+    - name: CHUẨN BỊ AnyKernel3 zip CHO TELEGRAM
+      run: |
+       cd $GITHUB_WORKSPACE/AnyKernel3
+       zip -r "${{ steps.extract.outputs.file_name }}-AnyKernel3.zip" . -x "*.zip" ".git/*"
+       echo "=== CHECK ZIP ==="
+       ls -lah
+
+    - name: Get Commit Info
+      id: commit_info # ID này phải khớp với nội dung trong 'context' bên dưới
+      run: |
+        echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        # Lấy commit message và lọc bỏ ký tự đặc biệt để tránh lỗi HTML Telegram
+        msg=$(git log -1 --pretty=format:'%s' | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+        echo "msg=$msg" >> $GITHUB_OUTPUT
+
+    - name: Send Notification to Telegram
+      if: success()
+      uses: xireiki/channel-post@v1
+      with:
+        bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        chat_id: ${{ secrets.TELEGRAM_USER_ID }}
+        context: |
+          <b>Repository:</b> <a href="https://github.com/${{ github.repository }}">${{ github.repository }}</a>
+        parse_mode: HTML
+        method: sendMessage
+
+    - name: Upload Kernel to Telegram
+      if: success()
+      uses: xireiki/channel-post@v1
+      with:
+        bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        chat_id: ${{ secrets.TELEGRAM_USER_ID }}
+        context: |
+          
+          <b>Version:</b> <code>${{ steps.extract.outputs.file_name }}</code>
+          <b>Variant:</b> <code>${{ inputs.variant || 'Normal' }}</code>
+          <b>Features:</b> <code>${{ inputs.feature_set }}</code>
+           <b>Repository:</b> <a href="https://github.com/${{ github.repository }}">${{ github.repository }}</a>
+          <b>Branch:</b> <a href="https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}">${{ github.ref_name }}</a>
+          <b>Commit:</b> <a href="https://github.com/${{ github.repository }}/commit/${{ github.sha }}">${{ steps.commit_info.outputs.short_sha }}</a>
+          <b>Workflow:</b> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Run</a>
+          <b>Commit Message:</b>
+          <code>${{ steps.commit_info.outputs.msg }}</code>
+        parse_mode: HTML
+        # TRỎ THẲNG VÀO FILE TRONG THƯ MỤC ANYKERNEL3
+        # Dùng wildcard tên file để khớp với biến file_name của bạn
+        path: "AnyKernel3/*.zip"
+        method: sendFile
+
+    - name: Notify Build Failure
+      if: failure()
+      uses: xireiki/channel-post@v1
+      with:
+        bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        chat_id: ${{ secrets.TELEGRAM_USER_ID }}
+        context: "<b>Build Kernel Thất Bại! ❌</b>\nKiểm tra log tại GitHub Actions."
+        parse_mode: HTML
+        method: sendMessage
