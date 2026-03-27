@@ -5,6 +5,7 @@ on:
 
 jobs:
   patch-and-push:
+    name: LOẠI BỎ UPLOAD MANAGER LÊN TELEGRAM (${{ matrix.branch }})
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
