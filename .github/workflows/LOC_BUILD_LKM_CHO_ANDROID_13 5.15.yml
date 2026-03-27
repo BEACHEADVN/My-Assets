@@ -1,0 +1,60 @@
+name: LỌC CÁC PHIÊN BẢN BUILD LKM CHO ANDROID 13 5.15
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  patch-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/Ayaka
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+          fetch-depth: 0
+
+      - name: Lọc Nội Dung (Stable, Beta, Canary)
+        run: |
+          cd remote-repo/
+          FILE_PATH=".github/workflows/build-lkm.yml"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          for branch in stable beta canary; do
+            echo ">>> Đang xử lý branch: $branch"
+            
+            # Sử dụng refs/heads/ để tránh nhầm lẫn với Tag cùng tên
+            git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
+            git checkout -B $branch origin/$branch
+            
+            if [ -f "$FILE_PATH" ]; then
+              # Lọc chính xác Android 13 5.15
+              sed -i '/- android/ { /android13-5.15/ !d }' "$FILE_PATH"
+              sed -i '/^$/d' "$FILE_PATH" 2>/dev/null || true
+
+              git add "$FILE_PATH"
+              
+              if ! git diff --staged --quiet; then
+                 git commit -m "LỌC CÁC PHIÊN BẢN BUILD LKM CHO ANDROID 13 5.15"
+                 echo "Branch $branch: Đã tạo commit mới."
+              else
+                 echo "Branch $branch: Không có thay đổi."
+              fi
+            fi
+            echo "-----------------------------------"
+          done
+
+      - name: Đẩy Cập Nhật Lên GitHub
+        run: |
+          cd remote-repo/
+          for branch in stable beta canary; do
+            # Kiểm tra commit mới
+            if git checkout $branch && [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$branch)" ]; then
+               echo ">>> Đang Push branch: $branch"
+               # Chỉ định rõ ràng push vào refs/heads/ để sửa lỗi ambiguous
+               git push origin HEAD:refs/heads/$branch --force
+            fi
+          done

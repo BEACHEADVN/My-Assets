@@ -1,0 +1,102 @@
+name: THAY ICON VÀ BẢN QUYỀN MANAGER
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  sync-and-rebrand:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: [stable, beta, canary] # Chạy đồng thời cho 3 nhánh
+    
+    steps:
+      # 1. Checkout nhánh tương ứng từ ma trận
+      - name: Checkout Ayaka Repo (${{ matrix.branch }})
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/Ayaka
+          token: ${{ secrets.GH_PAT }}
+          path: ayaka_repo
+          ref: ${{ matrix.branch }}
+          fetch-depth: 0
+
+      # 2. Lấy Assets từ repo nguồn
+      - name: Checkout My-Assets
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/My-Assets
+          path: my_assets_temp
+
+      - name: THỰC THI THAY ĐỔI
+        run: |
+          cd ayaka_repo
+          
+          echo "=== 1. Copy Icon từ My-Assets ==="
+          SOURCE_RES="../my_assets_temp/Wild_KSU/res"
+          DEST_RES="manager/app/src/main/res"
+          if [ -d "$SOURCE_RES" ]; then
+            cp -Rf $SOURCE_RES/. $DEST_RES/
+            echo "[✔] Resources updated."
+          fi
+
+          echo "=== 2. Cập nhật Key & Hash (Kernel) ==="
+          # Cập nhật Key Manager (0x381 -> 0x389)
+          grep -rl "0x381" ./kernel | xargs sed -i 's/0x381/0x389/g' || true
+          
+          # Cập nhật Manager Hash
+          OLD_HASH="52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4"
+          NEW_HASH="e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8"
+          grep -rl "$OLD_HASH" ./kernel | xargs sed -i "s/$OLD_HASH/$NEW_HASH/g" || true
+
+          echo "=== 3. Rebranding Manager (App ID & Name) ==="
+          # Đổi Application ID
+          sed -i 's/applicationId = "com.twj.wksu"/applicationId = "com.beacheadvn.ayaka"/g' manager/app/build.gradle.kts || true
+          
+          # Đổi App Name trong strings.xml
+          find manager/app/src/main/res/ -name "strings.xml" | xargs sed -i 's/>Wild KSU</>Ayaka</g' || true
+          
+          # Đổi tên APK Output
+          sed -i 's/output.outputFileName = "Wild_KSU_/output.outputFileName = "Ayaka_Manager_/g' manager/app/build.gradle.kts || true
+
+          echo "=== 4. Cập nhật setup.sh ==="
+          if [ -f "kernel/setup.sh" ]; then
+            sed -i 's/OWNER="WildKernels"/OWNER="BEACHEADVN"/g' kernel/setup.sh
+            sed -i 's/REPO="Wild_KSU"/REPO="Ayaka"/g' kernel/setup.sh
+          fi
+
+          echo "=== 5. Sửa file spoof ==="
+          if [ -f "manager/spoof" ]; then
+            sed -i 's/Wild_KSU/Ayaka_Manager/g' manager/spoof
+          fi
+
+      - name: Commit and Push
+        run: |
+          cd ayaka_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .
+          if git diff-index --quiet HEAD; then
+            echo "Không có thay đổi cho nhánh ${{ matrix.branch }}."
+          else
+            git commit -m "chore(${{ matrix.branch }}): THAY ICON VÀ BẢN QUYỀN"
+            git push origin HEAD:refs/heads/${{ matrix.branch }}
+          fi
+
+      - name: KIỂM TRA
+        run: |
+          cd ayaka_repo
+          echo "--- KIỂM TRA NHÁNH: ${{ matrix.branch }} ---"
+          echo "••••Nội dung Kbuild•••••••••••••••"
+          echo "••••Nội dung Kbuild•••••••••••••••"
+          echo "••••Nội dung Kbuild•••••••••••••••"
+          echo "••••Nội dung Kbuild•••••••••••••••"
+          cat ./kernel/Kbuild
+
+          echo "••••Nội dung build.gradle.kts•••••••••••••••"
+          echo "••••Nội dung build.gradle.kts•••••••••••••••"
+          echo "••••Nội dung build.gradle.kts•••••••••••••••"
+          echo "••••Nội dung build.gradle.kts•••••••••••••••"
+          cat ./manager/app/build.gradle.kts
