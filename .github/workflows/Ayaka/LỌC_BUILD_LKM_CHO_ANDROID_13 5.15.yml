@@ -1,6 +1,7 @@
 name: LỌC CÁC PHIÊN BẢN BUILD LKM CHO ANDROID 13 5.15
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   patch-and-push:
