@@ -1,0 +1,56 @@
+name: CHỈNH SỬA DEFAULT KERNEL VERSION
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-default:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/GKI_KernelSU_SUSFS
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+
+      - name: Thay đổi Default Custom sang a13-5-15
+        run: |
+          cd remote-repo/.github/workflows/
+          
+          # Sử dụng sed để tìm khối kernel_build_version
+          # Lệnh này tìm từ dòng chứa 'kernel_build_version:' 
+          # cho đến dòng 'default:' đầu tiên xuất hiện sau đó.
+          # [[:space:]]* giúp xử lý mọi kiểu thụt lề (tab hoặc space)
+          
+          sed -i '/kernel_build_version:/,/default:/s/\(default:[[:space:]]*\)custom/\1a13-5-15/' main.yml
+
+      - name: KIỂM TRA KẾT QUẢ
+        run: |
+          cd remote-repo/.github/workflows/
+          echo "=== NỘI DUNG SAU KHI SỬA ==="
+          # Hiển thị khối kernel_build_version để xác nhận
+          grep -A 20 "kernel_build_version:" main.yml
+          
+          # Kiểm tra xem có đúng là a13-5-15 không
+          if grep -A 20 "kernel_build_version:" main.yml | grep -q "default: a13-5-15"; then
+            echo "✅ Đã đổi thành công!"
+          else
+            echo "❌ Thất bại: Vẫn chưa đổi được giá trị default."
+            exit 1
+          fi
+
+      - name: Push Changes
+        run: |
+          cd remote-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .github/workflows/main.yml
+          
+          if git diff-index --quiet HEAD; then
+            echo "Không có thay đổi nào để push."
+          else
+            git commit -m "chore: update default kernel version to a13-5-15"
+            git push origin HEAD
+          fi
