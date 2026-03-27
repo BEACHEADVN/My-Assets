@@ -6,7 +6,7 @@ on:
 
 jobs:
   sync-and-rebrand:
-    name: THAY ICON VÀ BẢN QUYỀN MANAGER
+    name: THAY ICON VÀ BẢN QUYỀN MANAGER (${{ matrix.branch }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
