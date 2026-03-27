@@ -1,0 +1,46 @@
+name: MOD REPO AYAKA
+
+on:
+  workflow_dispatch:
+    inputs:
+      disable_auto:
+        description: "Xóa trigger push/pull_request?"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  step0:
+    name: Restore build-manager.yml
+    uses: BEACHEADVN/My-Assets/.github/workflows/HOAN_NGUYEN_BUILD_YML_TU_REPO_GOC.yml@main
+    with:
+      disable_auto: ${{ inputs.disable_auto }}
+    secrets: inherit
+
+  step1:
+    needs: step0
+    uses: BEACHEADVN/My-Assets/.github/workflows/THAY_DOI_ICON_VA_KEY_MANAGER.yml@main
+    secrets: inherit
+
+  step2:
+    needs: step0
+    uses: BEACHEADVN/My-Assets/.github/workflows/LOC_BUILD_LKM_CHO_ANDROID_13 5.15.yml@main
+    secrets: inherit
+
+  step3:
+    needs: step0
+    uses: BEACHEADVN/My-Assets/.github/workflows/LOAI_BO_UPLOAD_MANAGER_LEN_TELEGRAM.yml@main
+    secrets: inherit
+
+  step4:
+    needs: step3
+    uses: BEACHEADVN/My-Assets/.github/workflows/LOAI_BO_DU_THUA_BUILD_MANAGER.yml@main
+    secrets: inherit
+
+  step5:
+    needs: step4
+    uses: BEACHEADVN/My-Assets/.github/workflows/THEM_UPLOAD_MANAGER_TELEGRAM.yml@main
+    secrets: inherit

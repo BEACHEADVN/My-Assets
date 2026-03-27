@@ -1,0 +1,89 @@
+name: HOÀN NGUYÊN BUILD MANAGER TỪ REPO GỐC
+
+on:
+  workflow_dispatch:
+    inputs:
+      disable_auto:
+        description: "Xóa trigger push/pull_request?"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+  workflow_call:
+    inputs:
+      disable_auto:
+        required: false
+        type: string
+
+jobs:
+  sync:
+    name: HOÀN NGUYÊN BUILD MANAGER TỪ REPO GỐC (${{ matrix.branch }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target repo (Ayaka)
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/Ayaka
+          token: ${{ secrets.GH_PAT }}
+          path: target-repo
+          fetch-depth: 0
+
+      - name: Sync & patch build-manager.yml
+        run: |
+          cd target-repo
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          DISABLE_AUTO="${{ inputs.disable_auto || 'true' }}"
+
+          for branch in stable beta canary; do
+            echo ">>> Processing $branch"
+
+            git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
+            git checkout -B $branch origin/$branch
+
+            curl -L \
+              https://raw.githubusercontent.com/WildKernels/Wild_KSU/$branch/.github/workflows/build-manager.yml \
+              -o build-manager.yml
+
+            if [ "$DISABLE_AUTO" = "true" ]; then
+              echo ">>> Disable auto trigger"
+
+              awk '
+              BEGIN {skip=0}
+              /^on:/ {
+                print "on:"
+                print "  workflow_dispatch:"
+                print "  workflow_call:"
+                skip=1
+                next
+              }
+              /^jobs:/ {skip=0}
+              !skip {print}
+              ' build-manager.yml > fixed.yml
+            else
+              echo ">>> Keep original trigger"
+              cp build-manager.yml fixed.yml
+            fi
+
+            mkdir -p .github/workflows
+            mv fixed.yml .github/workflows/build-manager.yml
+            rm build-manager.yml
+
+            git add .github/workflows/build-manager.yml
+
+            if ! git diff --staged --quiet; then
+              git commit -m "RESTORE build-manager.yml (disable_auto=$DISABLE_AUTO) [$branch]"
+              git push origin HEAD:refs/heads/$branch
+              echo "Pushed $branch"
+            else
+              echo "No changes for $branch"
+            fi
+
+            echo "-----------------------------"
+          done

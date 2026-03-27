@@ -1,0 +1,84 @@
+name: LOẠI BỎ DƯ THỪA BUILD MANAGER
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  patch-and-push:
+    name: LOẠI BỎ DƯ THỪA BUILD MANAGER (${{ matrix.branch }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/Ayaka
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+          fetch-depth: 0
+  
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/bin/yq
+  
+      - name: Patch build-manager.yml safely
+        run: |
+          cd remote-repo
+          FILE_PATH=".github/workflows/build-manager.yml"
+  
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+  
+          for branch in stable beta canary; do
+            echo ">>> Processing $branch"
+            git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
+            git checkout -B $branch origin/$branch
+  
+            if [ -f "$FILE_PATH" ]; then
+              # BƯỚC 1: Xóa rác và dòng lỗi cũ để tránh lỗi line 2
+              sed -i '/^[[:space:]]*$/d' "$FILE_PATH"
+              sed -i '/^\\$/d' "$FILE_PATH"
+
+              # BƯỚC 2: Xử lý dữ liệu bằng yq
+              yq -i '
+                del(.jobs["build-ksud-extra"]) |
+                .jobs["build-ksud"].strategy.matrix.include |= map(select(.target == "aarch64-linux-android")) |
+                .jobs["build-manager"].steps |= map(select(.name != "Download x86_64 ksud"))
+              ' "$FILE_PATH"
+
+              # BƯỚC 3: Xóa các dòng x86_64 trong script
+              sed -i '/jniLibs\/x86_64/d' "$FILE_PATH"
+              sed -i '/x86_64-linux-android\/release\/ksud/d' "$FILE_PATH"
+
+              # BƯỚC 4: HỒI SINH DÒNG TRẮNG (Phân tách các khối cho dễ nhìn)
+              # Thêm 1 dòng trống TRƯỚC các từ khóa quan trọng
+              sed -i '/^on:/i \\' "$FILE_PATH"
+              sed -i '/^jobs:/i \\' "$FILE_PATH"
+              sed -i '/^  build-ksud:/i \\' "$FILE_PATH"
+              sed -i '/^  build-manager:/i \\' "$FILE_PATH"
+              # Thêm dòng trống trước mỗi Step (dòng bắt đầu bằng - name:)
+              sed -i '/^      - name:/i \\' "$FILE_PATH"
+              
+              # Dọn dẹp: Nếu có 2 dòng trống liên tiếp thì chỉ giữ 1
+              sed -i '/^$/N;/^\n$/D' "$FILE_PATH"
+
+              git add "$FILE_PATH"
+              if ! git diff --staged --quiet; then
+                git commit -m "LOẠI BỎ DƯ THỪA BUILD MANAGER"
+                echo "Committed on $branch"
+              else
+                echo "No changes on $branch"
+              fi
+            fi
+            echo "-----------------------------"
+          done
+  
+      - name: Đẩy Cập Nhật Lên GitHub
+        run: |
+          cd remote-repo
+          for branch in stable beta canary; do
+            if git checkout $branch && [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/$branch)" ]; then
+              echo ">>> Pushing $branch"
+              git push origin HEAD:refs/heads/$branch --force
+            fi
+          done
