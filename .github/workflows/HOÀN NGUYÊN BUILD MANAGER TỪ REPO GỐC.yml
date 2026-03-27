@@ -1,7 +1,16 @@
-name: HOÀN NGUYÊN BUILD MANAGER (NO AUTO RUN)
+name: HOÀN NGUYÊN BUILD MANAGER (OPTION)
 
 on:
   workflow_dispatch:
+    inputs:
+      disable_auto:
+        description: "Xóa trigger push/pull_request?"
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 jobs:
   sync:
@@ -26,30 +35,35 @@ jobs:
           for branch in stable beta canary; do
             echo ">>> Processing $branch"
 
-            # Checkout branch
             git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
             git checkout -B $branch origin/$branch
 
-            # Tải file gốc từ Wild_KSU
+            # Tải file gốc
             curl -L \
               https://raw.githubusercontent.com/WildKernels/Wild_KSU/$branch/.github/workflows/build-manager.yml \
               -o build-manager.yml
 
-            # 🔥 Patch lại phần on: (xoá auto trigger)
-            awk '
-            BEGIN {skip=0}
-            /^on:/ {
-              print "on:"
-              print "  workflow_dispatch:"
-              print "  workflow_call:"
-              skip=1
-              next
-            }
-            /^jobs:/ {skip=0}
-            !skip {print}
-            ' build-manager.yml > fixed.yml
+            if [ "${{ inputs.disable_auto }}" = "true" ]; then
+              echo ">>> Disable auto trigger"
 
-            # Ghi đè lại file đúng vị trí
+              awk '
+              BEGIN {skip=0}
+              /^on:/ {
+                print "on:"
+                print "  workflow_dispatch:"
+                print "  workflow_call:"
+                skip=1
+                next
+              }
+              /^jobs:/ {skip=0}
+              !skip {print}
+              ' build-manager.yml > fixed.yml
+
+            else
+              echo ">>> Keep original trigger"
+              cp build-manager.yml fixed.yml
+            fi
+
             mkdir -p .github/workflows
             mv fixed.yml .github/workflows/build-manager.yml
             rm build-manager.yml
@@ -57,7 +71,7 @@ jobs:
             git add .github/workflows/build-manager.yml
 
             if ! git diff --staged --quiet; then
-              git commit -m "RESTORE build-manager.yml (disable auto run) [$branch]"
+              git commit -m "RESTORE build-manager.yml (disable_auto=${{ inputs.disable_auto }}) [$branch]"
               git push origin HEAD:refs/heads/$branch
               echo "Pushed $branch"
             else
