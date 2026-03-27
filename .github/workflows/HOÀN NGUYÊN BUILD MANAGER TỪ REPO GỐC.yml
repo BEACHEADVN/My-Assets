@@ -1,4 +1,5 @@
-name: HOÀN NGUYÊN BUILD MANAGER TỪ REPO GỐC
+name: HOÀN NGUYÊN BUILD MANAGER (NO AUTO RUN)
+
 on:
   workflow_dispatch:
 
@@ -15,7 +16,7 @@ jobs:
           path: target-repo
           fetch-depth: 0
 
-      - name: Sync all branches
+      - name: Sync & patch build-manager.yml
         run: |
           cd target-repo
 
@@ -25,24 +26,38 @@ jobs:
           for branch in stable beta canary; do
             echo ">>> Processing $branch"
 
+            # Checkout branch
             git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
             git checkout -B $branch origin/$branch
 
-            # Tải file gốc
+            # Tải file gốc từ Wild_KSU
             curl -L \
-            https://raw.githubusercontent.com/WildKernels/Wild_KSU/$branch/.github/workflows/build-manager.yml \
-            -o .github/workflows/build-manager.yml
+              https://raw.githubusercontent.com/WildKernels/Wild_KSU/$branch/.github/workflows/build-manager.yml \
+              -o build-manager.yml
 
-            # 🔥 XÓA trigger tự chạy (push + pull_request)
-            sed -i '/^on:/,/^jobs:/{
-              /push:/,/^[^ ]/d
-              /pull_request:/,/^[^ ]/d
-            }' .github/workflows/build-manager.yml
+            # 🔥 Patch lại phần on: (xoá auto trigger)
+            awk '
+            BEGIN {skip=0}
+            /^on:/ {
+              print "on:"
+              print "  workflow_dispatch:"
+              print "  workflow_call:"
+              skip=1
+              next
+            }
+            /^jobs:/ {skip=0}
+            !skip {print}
+            ' build-manager.yml > fixed.yml
+
+            # Ghi đè lại file đúng vị trí
+            mkdir -p .github/workflows
+            mv fixed.yml .github/workflows/build-manager.yml
+            rm build-manager.yml
 
             git add .github/workflows/build-manager.yml
 
             if ! git diff --staged --quiet; then
-              git commit -m "HOÀN NGUYÊN BUILD.YML + DISABLE AUTO RUN ($branch)"
+              git commit -m "RESTORE build-manager.yml (disable auto run) [$branch]"
               git push origin HEAD:refs/heads/$branch
               echo "Pushed $branch"
             else
