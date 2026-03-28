@@ -1,0 +1,41 @@
+- name: TÌM VÀ SỬA KEY
+      run: |
+          echo "•••TÌM SIZE GỐC CỦA WILD_KSU"
+          cd kernel/Ayaka
+          FILES=$(grep -rl "0x033b" .)
+          if [ -n "$FILES" ]; then
+          echo "[✔] Tìm thấy 0x033b trong các file:"
+          echo "$FILES"
+          
+          # 2. Thực hiện sửa 0x033b thành 0x389
+          echo "--- Đang tiến hành sửa thành 0x389 ---"
+          echo "$FILES" | xargs sed -i 's/0x033b/0x389/g'
+          
+          # 3. Xác nhận lại kết quả
+          echo "=== Kết quả sau khi sửa ==="
+          grep -rn "0x389" .
+          else
+          echo "[❌] Không tìm thấy 0x381 để sửa (có thể đã là 0x389 rồi)"
+          echo "Kiểm tra hiện tại:"
+          grep -rn "0x389" .
+          fi
+          echo "•••TÌM HASH GỐC CỦA WILD_KSU"
+          FILES=$(grep -rl "c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6" .)
+          if [ -n "$FILES" ]; then
+          echo "[✔] Tìm thấy c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6 trong các file:"
+          echo "$FILES"
+          
+          # 2. Thực hiện sửa c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6 thành 0x389
+          echo "--- Đang tiến hành sửa thành e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8 ---"
+          echo "$FILES" | xargs sed -i 's/c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc2d2d6/e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8/g'
+          
+          # 3. Xác nhận lại kết quả
+          echo "=== Kết quả sau khi sửa ==="
+          grep -rn "e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8" .
+          else
+          echo "[❌] Không tìm thấy 52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4 để sửa (có thể đã là 0x389 rồi)"
+          echo "Kiểm tra hiện tại:"
+          grep -rn "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4" .
+          fi
+          echo "TÌM KBUILD"
+          cat $(find . -type f -name "manager_hash.h")
