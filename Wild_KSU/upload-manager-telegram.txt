@@ -1,0 +1,63 @@
+
+
+on:
+  workflow_call:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          
+      - name: Download Normal Manager
+        uses: actions/download-artifact@v6
+        with:
+          name: manager
+          path: manager
+          
+      - name: Download Spoofed Manager
+        uses: actions/download-artifact@v6
+        with:
+          name: manager-spoofed
+          path: manager-spoofed
+          
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: all_apks
+          
+      - name: Get Git Info
+        id: git
+        run: |
+          MSG=$(git log -1 --pretty=format:'%s' | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+          echo "msg=$MSG" >> $GITHUB_OUTPUT
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          
+      - name: Send Notification to Telegram
+        if: success()
+        uses: xireiki/channel-post@v1
+        with:
+          bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          chat_id: ${{ secrets.TELEGRAM_USER_ID }}
+          context: |
+            <b>Repository:</b> <a href="https://github.com/${{ github.repository }}">${{ github.repository }}</a>
+          parse_mode: HTML
+          method: sendMessage
+          
+      - name: Post APKs to Telegram
+        uses: xireiki/channel-post@v1
+        with:
+          bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          chat_id: ${{ secrets.TELEGRAM_USER_ID }}
+          method: sendFile
+          path: "all_apks/**/*.apk"
+          parse_mode: HTML
+          context: |
+            <b>Branch:</b> <a href="https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}">${{ github.ref_name }}</a>
+            <b>Commit:</b> <a href="https://github.com/${{ github.repository }}/commit/${{ github.sha }}">${{ steps.git.outputs.sha_short }}</a>
+            <b>Workflow:</b> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Run</a>
+            <b>Commit Message:</b> <a href="https://github.com/${{ github.repository }}/commit/${{ github.sha }}">${{ steps.git.outputs.msg }}</a>
