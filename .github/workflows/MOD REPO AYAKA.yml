@@ -26,7 +26,7 @@ jobs:
     secrets: inherit
 
   step2:
-    needs: step1
+    needs: step0
     uses: BEACHEADVN/My-Assets/.github/workflows/LOAI_BO_UPLOAD_MANAGER_LEN_TELEGRAM.yml@main
     secrets: inherit
 
