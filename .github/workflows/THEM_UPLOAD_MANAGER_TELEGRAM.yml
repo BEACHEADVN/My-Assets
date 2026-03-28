@@ -24,7 +24,7 @@ jobs:
       - name: 📥 Download workflow từ My-Assets
         run: |
           curl -L \
-          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/upload-manager-telegram.yml \
+          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/upload-manager-telegram.txt \
           -o upload-manager-telegram.yml
 
       - name: 📂 Tạo thư mục workflows nếu chưa có
