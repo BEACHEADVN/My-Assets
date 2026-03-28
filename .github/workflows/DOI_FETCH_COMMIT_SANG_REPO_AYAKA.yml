@@ -19,7 +19,7 @@ jobs:
           cd remote-repo/.github/actions/fetch-commits/
           
           echo "--- Kiểm tra nội dung hiện tại ---"
-          CURRENT_LINE=$(grep "Ayaka" action.yml | grep "\$KERNEL_VERSION")
+          CURRENT_LINE=$(grep "Ayaka" action.yml)
           echo "Dòng tìm thấy: $CURRENT_LINE"
           
           # Kiểm tra nếu dòng KHÔNG chứa chữ "Ayaka" thì mới sửa
