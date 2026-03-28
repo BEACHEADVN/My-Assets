@@ -1,0 +1,57 @@
+name: ĐỔI FETCH COMMIT SANG REPO AYAKA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-file-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/GKI_KernelSU_SUSFS
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+
+      - name: ĐỔI FETCH COMMIT SANG REPO AYAKA
+        run: |
+          cd remote-repo/.github/actions/fetch-commits/
+          
+          echo "--- Kiểm tra nội dung hiện tại ---"
+          CURRENT_LINE=$(grep "Ayaka" action.yml | grep "\$KERNEL_VERSION")
+          echo "Dòng tìm thấy: $CURRENT_LINE"
+          
+          # Kiểm tra nếu dòng KHÔNG chứa chữ "Ayaka" thì mới sửa
+          if [[ "$CURRENT_LINE" != *"Ayaka"* ]]; then
+            echo "Chưa có chữ Ayaka, tiến hành sửa..."
+            sed -i 's|https://github.com/WildKernels/Wild_KSU.git|https://github.com/BEACHEADVN/Ayaka.git|g' fetch-commits.yml action.yml
+            
+            sed -i 's/Wild KSU/Ayaka/g' action.yml
+            
+            echo "--- Nội dung sau khi sửa ---"
+            cat action.yml
+          else
+            echo "Dòng này đã có Ayaka rồi, bỏ qua không sửa nữa."
+          fi
+
+      - name: Push Changes
+        run: |
+          cd remote-repo/.github/actions/fetch-commits/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Kiểm tra xem có sự thay đổi nào để commit không
+          if git diff --exit-code action.yml > /dev/null; then
+            echo "Không có thay đổi nào để push."
+          else
+            git add action.yml
+            git commit -m "ĐỔI FETCH COMMIT SANG REPO AYAKA"
+            git push origin main
+          fi
+          
+      - name: KIỂM TRA
+        run: |
+          cd remote-repo/.github/actions/fetch-commits/
+          echo "NỘI DUNG FILE COMMIT:"
+          cat action.yml
