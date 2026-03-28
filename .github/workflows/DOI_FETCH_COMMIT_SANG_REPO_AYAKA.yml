@@ -25,7 +25,7 @@ jobs:
           # Kiểm tra nếu dòng KHÔNG chứa chữ "Ayaka" thì mới sửa
           if [[ "$CURRENT_LINE" != *"Ayaka"* ]]; then
             echo "Chưa có chữ Ayaka, tiến hành sửa..."
-            sed -i 's|https://github.com/WildKernels/Wild_KSU.git|https://github.com/BEACHEADVN/Ayaka.git|g' fetch-commits.yml action.yml
+            sed -i 's|https://github.com/WildKernels/Wild_KSU.git|https://github.com/BEACHEADVN/Ayaka.git|g' action.yml
             
             sed -i 's/Wild KSU/Ayaka/g' action.yml
             
