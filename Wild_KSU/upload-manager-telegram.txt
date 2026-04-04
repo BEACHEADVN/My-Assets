@@ -10,42 +10,52 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          
+
+      - name: Install apksigner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apksigner
+
       - name: Download All Artifacts
         uses: actions/download-artifact@v6
         with:
           path: all_apks
-          
+
       - name: Get Info and Calculate SHA256
         id: info
         run: |
-          # 1. Lấy thông tin Git (Escape các ký tự đặc biệt cho HTML)
+          # Git info
           MSG=$(git log -1 --pretty=format:'%s' | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
           echo "msg=$MSG" >> $GITHUB_OUTPUT
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          
-          # 2. Tính SHA256 cho từng file APK tìm thấy
+
+          SHA_LIST=""
+
           while IFS= read -r file; do
-          FILENAME=$(basename "$file")
+            # ✔ GIỮ NGUYÊN TÊN FILE
+            FILENAME=$(basename "$file")
 
-  # File SHA256 (luôn có)
-  FILE_HASH=$(sha256sum "$file" | awk '{ print $1 }')
+            CERT_HASH=$(apksigner verify --print-certs "$file" 2>/dev/null \
+              | grep "certificate SHA-256 digest" \
+              | head -n1 \
+              | awk '{print $NF}')
 
-  # Key SHA256 (certificate)
-  CERT_HASH=$(apksigner verify --print-certs "$file" 2>/dev/null \
-    | grep "certificate SHA-256 digest" \
-    | head -n1 \
-    | awk '{print $NF}')
+            if [ -z "$CERT_HASH" ]; then
+              CERT_HASH="Unsigned APK"
+            fi
 
-  # Nếu không có cert → unsigned
-  if [ -z "$CERT_HASH" ]; then
-    CERT_HASH="Unsigned APK"
-  fi
+            SHA_LIST="$SHA_LIST
+            <b>$FILENAME</b>
+            <blockquote><code>$CERT_HASH</code></blockquote>
+            "
 
-  SHA_LIST="$SHA_LIST%0A<b>$FILENAME</b>:%0A• File SHA256: <code>$FILE_HASH</code>%0A• Key SHA256: <code>$CERT_HASH</code>%0A"
+          done < <(find all_apks -name "*.apk")
 
-done < <(find all_apks -name "*.apk")
-          
+          # Export multiline chuẩn
+          echo "sha_list<<EOF" >> $GITHUB_OUTPUT
+          echo "$SHA_LIST" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Send Notification to Telegram
         if: success()
         uses: xireiki/channel-post@v1
@@ -56,7 +66,7 @@ done < <(find all_apks -name "*.apk")
             <b>Repository:</b> <a href="https://github.com/${{ github.repository }}">${{ github.repository }}</a>
           parse_mode: HTML
           method: sendMessage
-          
+
       - name: Post APKs to Telegram
         uses: xireiki/channel-post@v1
         with:
@@ -71,5 +81,5 @@ done < <(find all_apks -name "*.apk")
             <b>Workflow:</b> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Run</a>
             <b>Message:</b> ${{ steps.info.outputs.msg }}
 
-            <b>SHA-256 Checksum:</b>
+            <b>🔑 Key SHA-256:</b>
             ${{ steps.info.outputs.sha_list }}
