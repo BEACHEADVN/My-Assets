@@ -11,29 +11,29 @@ jobs:
         with:
           fetch-depth: 0
           
-      - name: Download Normal Manager
-        uses: actions/download-artifact@v6
-        with:
-          name: manager
-          path: manager
-          
-      - name: Download Spoofed Manager
-        uses: actions/download-artifact@v6
-        with:
-          name: manager-spoofed
-          path: manager-spoofed
-          
       - name: Download All Artifacts
         uses: actions/download-artifact@v6
         with:
           path: all_apks
           
-      - name: Get Git Info
-        id: git
+      - name: Get Info and Calculate SHA256
+        id: info
         run: |
+          # 1. Lấy thông tin Git (Escape các ký tự đặc biệt cho HTML)
           MSG=$(git log -1 --pretty=format:'%s' | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
           echo "msg=$MSG" >> $GITHUB_OUTPUT
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          
+          # 2. Tính SHA256 cho từng file APK tìm thấy
+          SHA_LIST=""
+          while IFS= read -r file; do
+            FILENAME=$(basename "$file")
+            HASH=$(sha256sum "$file" | awk '{ print $1 }')
+            # Tạo dòng hiển thị: Tên file + mã hash (sử dụng %0A để xuống dòng trong Telegram)
+            SHA_LIST="$SHA_LIST%0A<b>$FILENAME</b>:%0A<code>$HASH</code>%0A"
+          done < <(find all_apks -name "*.apk")
+          
+          echo "sha_list=$SHA_LIST" >> $GITHUB_OUTPUT
           
       - name: Send Notification to Telegram
         if: success()
@@ -56,6 +56,9 @@ jobs:
           parse_mode: HTML
           context: |
             <b>Branch:</b> <a href="https://github.com/${{ github.repository }}/tree/${{ github.ref_name }}">${{ github.ref_name }}</a>
-            <b>Commit:</b> <a href="https://github.com/${{ github.repository }}/commit/${{ github.sha }}">${{ steps.git.outputs.sha_short }}</a>
+            <b>Commit:</b> <a href="https://github.com/${{ github.repository }}/commit/${{ github.sha }}">${{ steps.info.outputs.sha_short }}</a>
             <b>Workflow:</b> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Run</a>
-            <b>Commit Message:</b> <a href="https://github.com/${{ github.repository }}/commit/${{ github.sha }}">${{ steps.git.outputs.msg }}</a>
+            <b>Message:</b> ${{ steps.info.outputs.msg }}
+
+            <b>SHA-256 Checksum:</b>
+            ${{ steps.info.outputs.sha_list }}
