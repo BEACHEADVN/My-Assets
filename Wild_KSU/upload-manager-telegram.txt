@@ -25,15 +25,26 @@ jobs:
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           
           # 2. Tính SHA256 cho từng file APK tìm thấy
-          SHA_LIST=""
           while IFS= read -r file; do
-            FILENAME=$(basename "$file")
-            HASH=$(sha256sum "$file" | awk '{ print $1 }')
-            # Tạo dòng hiển thị: Tên file + mã hash (sử dụng %0A để xuống dòng trong Telegram)
-            SHA_LIST="$SHA_LIST%0A<b>$FILENAME</b>:%0A<code>$HASH</code>%0A"
-          done < <(find all_apks -name "*.apk")
-          
-          echo "sha_list=$SHA_LIST" >> $GITHUB_OUTPUT
+          FILENAME=$(basename "$file")
+
+  # File SHA256 (luôn có)
+  FILE_HASH=$(sha256sum "$file" | awk '{ print $1 }')
+
+  # Key SHA256 (certificate)
+  CERT_HASH=$(apksigner verify --print-certs "$file" 2>/dev/null \
+    | grep "certificate SHA-256 digest" \
+    | head -n1 \
+    | awk '{print $NF}')
+
+  # Nếu không có cert → unsigned
+  if [ -z "$CERT_HASH" ]; then
+    CERT_HASH="Unsigned APK"
+  fi
+
+  SHA_LIST="$SHA_LIST%0A<b>$FILENAME</b>:%0A• File SHA256: <code>$FILE_HASH</code>%0A• Key SHA256: <code>$CERT_HASH</code>%0A"
+
+done < <(find all_apks -name "*.apk")
           
       - name: Send Notification to Telegram
         if: success()
