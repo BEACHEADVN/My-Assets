@@ -23,4 +23,3 @@
           
           grep -rn "0x389" . || echo "Chưa có 0x389"
           grep -rn "$NEW_HASH" . || echo "Chưa có Hash mới"
-			
