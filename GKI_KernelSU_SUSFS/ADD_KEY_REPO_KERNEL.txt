@@ -2,7 +2,7 @@
       run: |
           echo "•••TÌM SIZE GỐC CỦA WILD_KSU"
           cd kernel/Ayaka
-          FILES=$(grep -rl "0x381" .)
+          FILES=$(grep -rl "0x381" . || true)
           if [ -n "$FILES" ]; then
           echo "[✔] Tìm thấy 0x381 trong các file:"
           echo "$FILES"
@@ -12,7 +12,7 @@
           echo "$FILES" | xargs sed -i 's/0x381/0x389/g'
           
           echo "•••TÌM HASH GỐC CỦA WILD_KSU"
-          FILES=$(grep -rl "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4" .)
+          FILES=$(grep -rl "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4" . || true)
           if [ -n "$FILES" ]; then
           echo "[✔] Tìm thấy 52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4 trong các file:"
           echo "$FILES"
