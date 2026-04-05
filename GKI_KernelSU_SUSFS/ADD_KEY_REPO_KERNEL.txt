@@ -1,32 +1,50 @@
     - name: TÌM VÀ SỬA KEY
       run: |
-            # 1. Sửa Size 0x381 -> 0x389 (Thêm || true để tránh dừng workflow)
-			echo "--- Đang kiểm tra Size 0x381 ---"
-			FILES_SIZE=$(grep -rl "0x381" . || true)
-			
-			if [ -n "$FILES_SIZE" ]; then
-			    echo "[✔] Tìm thấy trong: $FILES_SIZE"
-			    echo "$FILES_SIZE" | xargs sed -i 's/0x381/0x389/g'
-			    echo "--- Đã cập nhật xong Size ---"
-			else
-			    echo "[!] Không tìm thấy chuỗi 0x381 (có thể đã là 0x389 hoặc file khác)"
-			fi
-			
-			# 2. Sửa Hash gốc (Thêm || true tương tự)
-			OLD_HASH="52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4"
-			NEW_HASH="e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8"
-			
-			echo "--- Đang kiểm tra Hash ---"
-			FILES_HASH=$(grep -rl "$OLD_HASH" . || true)
-			
-			if [ -n "$FILES_HASH" ]; then
-			    echo "[✔] Tìm thấy Hash cũ, đang tiến hành thay thế..."
-			    echo "$FILES_HASH" | xargs sed -i "s/$OLD_HASH/$NEW_HASH/g"
-			    echo "--- Đã cập nhật xong Hash ---"
-			else
-			    echo "[!] Không tìm thấy Hash cũ trong thư mục này."
-			fi
-			
+          echo "•••TÌM SIZE GỐC CỦA WILD_KSU"
+          echo "VỊ TRÍ HIỆN TẠI"
+          pwd
+          echo "CÂY THƯ MỤC"
+          ls
+          cd kernel/Ayaka
+          FILES=$(grep -rl "0x381" .)
+          if [ -n "$FILES" ]; then
+          echo "[✔] Tìm thấy 0x381 trong các file:"
+          echo "$FILES"
+          
+          # 2. Thực hiện sửa 0x381 thành 0x389
+          echo "--- Đang tiến hành sửa thành 0x389 ---"
+          echo "$FILES" | xargs sed -i 's/0x381/0x389/g'
+          
+          # 3. Xác nhận lại kết quả
+          echo "=== Kết quả sau khi sửa ==="
+          grep -rn "0x389" .
+          else
+          echo "[❌] Không tìm thấy 0x381 để sửa (có thể đã là 0x389 rồi)"
+          echo "Kiểm tra hiện tại:"
+          grep -rn "0x389" .
+          fi
+          echo "•••TÌM HASH GỐC CỦA WILD_KSU"
+          FILES=$(grep -rl "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4" .)
+          if [ -n "$FILES" ]; then
+          echo "[✔] Tìm thấy 52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4 trong các file:"
+          echo "$FILES"
+          
+          # 2. Thực hiện sửa 52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4 thành 0x389
+          echo "--- Đang tiến hành sửa thành e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8 ---"
+          echo "$FILES" | xargs sed -i 's/52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4/e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8/g'
+          
+          # 3. Xác nhận lại kết quả
+          echo "=== Kết quả sau khi sửa ==="
+          grep -rn "e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8" .
+          else
+          echo "[❌] Không tìm thấy 52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4 để sửa (có thể đã là 0x389 rồi)"
+          echo "Kiểm tra hiện tại:"
+          grep -rn "52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4" .
+          fi
+          echo "TÌM MANAGER HASH"
+          #cat $(find . -type f -name "manager_hash.h")
+          echo "TÌM KBUILD"
+          #cat $(find . -type f -name "Kbuild")
 			# 3. Kiểm tra kết quả cuối cùng mà không làm văng lỗi
 			echo "=== KẾT QUẢ HIỆN TẠI ==="
 			grep -rn "0x389" . || echo "Chưa có 0x389"
