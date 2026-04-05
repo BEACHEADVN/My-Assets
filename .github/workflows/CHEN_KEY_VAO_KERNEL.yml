@@ -24,7 +24,7 @@ jobs:
          else
          echo "Tải file từ My-Assets..."
          curl -L -o add_key_block.yml \
-          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/ADD_KEY_REPO_KERNEL.txt
+          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/refs/heads/main/GKI_KernelSU_SUSFS/ADD_KEY_REPO_KERNEL.txt
           echo "--- Nội dung file ---"
           cat add_key_block.yml
           echo "Chèn vào build.yml..."
