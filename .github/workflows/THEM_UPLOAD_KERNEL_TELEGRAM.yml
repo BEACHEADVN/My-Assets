@@ -24,7 +24,7 @@ jobs:
          else
          echo "Tải file từ My-Assets..."
          curl -L -o add_upload_telegram.txt \
-          https://github.com/BEACHEADVN/My-Assets/blob/main/GKI_KernelSU_SUSFS/ADD_UPLOAD_TELEGRAM.txt
+          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/refs/heads/main/GKI_KernelSU_SUSFS/ADD_UPLOAD_TELEGRAM.txt
           echo "--- Nội dung file ---"
           cat add_upload_telegram.txt
           echo "Chèn vào build.yml..."
