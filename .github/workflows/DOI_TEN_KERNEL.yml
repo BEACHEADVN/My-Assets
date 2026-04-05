@@ -24,7 +24,7 @@ jobs:
          else
          echo "Tải file từ My-Assets..."
          curl -L -o CHANGE_NAME_KERNEL.txt \
-          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/Wild_KSU/CHANGE_NAME_KERNEL.txt
+          https://raw.githubusercontent.com/BEACHEADVN/My-Assets/refs/heads/main/GKI_KernelSU_SUSFS/CHANGE_NAME_KERNEL.txt
           echo "--- Nội dung file ---"
           cat CHANGE_NAME_KERNEL.txt
           echo "Chèn vào build.yml..."
