@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        branch: [stable, beta, canary] # Chạy đồng thời cho 3 nhánh
+        branch: [stable, beta, canary, dev] # Chạy đồng thời cho 3 nhánh
     
     steps:
       # 1. Checkout nhánh tương ứng từ ma trận
