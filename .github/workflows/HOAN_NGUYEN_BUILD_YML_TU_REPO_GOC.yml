@@ -41,7 +41,7 @@ jobs:
 
           DISABLE_AUTO="${{ inputs.disable_auto || 'true' }}"
 
-          for branch in stable beta canary; do
+          for branch in stable dev; do
             echo ">>> Processing $branch"
 
             git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
