@@ -1,10 +1,10 @@
-name: HOÀN NGUYÊN BUILD MANAGER TỪ REPO GỐC
+name: RESTORE BUILD MANAGER FROM ORIGINAL REPO
 
 on:
   workflow_dispatch:
     inputs:
       disable_auto:
-        description: "Xóa trigger push/pull_request?"
+        description: "Remove push/pull_request triggers?"
         required: true
         default: "true"
         type: choice
@@ -20,7 +20,7 @@ on:
 
 jobs:
   sync:
-    name: HOÀN NGUYÊN BUILD MANAGER TỪ REPO GỐC (${{ matrix.branch }})
+    name: Restore Build Manager
     runs-on: ubuntu-latest
 
     steps:
@@ -42,17 +42,17 @@ jobs:
           DISABLE_AUTO="${{ inputs.disable_auto || 'true' }}"
 
           for branch in stable beta canary; do
-            echo ">>> Processing $branch"
+            echo ">>> Processing branch: $branch"
 
             git fetch origin refs/heads/$branch:refs/remotes/origin/$branch
             git checkout -B $branch origin/$branch
 
             curl -L \
-              https://raw.githubusercontent.com/WildKernels/Wild_KSU/$branch/.github/workflows/build-manager.yml \
+              https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/dev/.github/workflows/build-manager.yml \
               -o build-manager.yml
 
             if [ "$DISABLE_AUTO" = "true" ]; then
-              echo ">>> Disable auto trigger"
+              echo ">>> Disabling auto trigger"
 
               awk '
               BEGIN {skip=0}
@@ -67,23 +67,23 @@ jobs:
               !skip {print}
               ' build-manager.yml > fixed.yml
             else
-              echo ">>> Keep original trigger"
+              echo ">>> Keeping original trigger"
               cp build-manager.yml fixed.yml
             fi
 
             mkdir -p .github/workflows
             mv fixed.yml .github/workflows/build-manager.yml
-            rm build-manager.yml
+            rm -f build-manager.yml
 
             git add .github/workflows/build-manager.yml
 
             if ! git diff --staged --quiet; then
               git commit -m "RESTORE build-manager.yml (disable_auto=$DISABLE_AUTO) [$branch]"
               git push origin HEAD:refs/heads/$branch
-              echo "Pushed $branch"
+              echo ">>> Successfully pushed changes to $branch"
             else
-              echo "No changes for $branch"
+              echo ">>> No changes detected for $branch"
             fi
 
-            echo "-----------------------------"
+            echo "------------------------------------------------"
           done
