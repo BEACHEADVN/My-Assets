@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        branch: [stable, beta, canary] # Chạy đồng thời cho 3 nhánh
+        branch: [stable, dev] # Chạy đồng thời cho 3 nhánh
     
     steps:
       # 1. Checkout nhánh tương ứng từ ma trận
@@ -43,11 +43,11 @@ jobs:
           fi
 
           echo "=== 2. Cập nhật Key & Hash (Kernel) ==="
-          # Cập nhật Key Manager (0x381 -> 0x389)
-          grep -rl "0x381" ./kernel | xargs sed -i 's/0x381/0x389/g' || true
+          # Cập nhật Key Manager (0x3e6 -> 0x389)
+          grep -rl "0x3e6" ./kernel | xargs sed -i 's/0x3e6/0x389/g' || true
           
           # Cập nhật Manager Hash
-          OLD_HASH="52d52d8c8bfbe53dc2b6ff1c613184e2c03013e090fe8905d8e3d5dc2658c2e4"
+          OLD_HASH="79e590113c4c4c0c222978e413a5faa801666957b1212a328e46c00c69821bf7"
           NEW_HASH="e8940bdb41a8aa33d4caabd79ede0ece332f2a1eacd324c433728ef66c8170c8"
           grep -rl "$OLD_HASH" ./kernel | xargs sed -i "s/$OLD_HASH/$NEW_HASH/g" || true
 
