@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        branch: [stable, beta, canary]
+        branch: [stable, dev]
 
     steps:
       - name: 📥 Checkout repo Ayaka
