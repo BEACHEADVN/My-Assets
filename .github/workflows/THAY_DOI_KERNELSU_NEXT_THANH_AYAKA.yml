@@ -1,4 +1,4 @@
-name: THAY URL WILD KSU THÀNH AYAKA
+name: THAY URL KERNELSU NEXT THÀNH AYAKA
 
 on:
   workflow_dispatch:
@@ -14,11 +14,11 @@ jobs:
           token: ${{ secrets.GH_PAT }} # Cần quyền 'workflow'
           path: remote-repo
 
-      - name: SỬA WKSU ACTION.YML
+      - name: SỬA KERNELSU NEXT ACTION.YML
         run: |
-          cd remote-repo/.github/actions/wksu/
+          cd remote-repo/.github/actions/kernelsu
           
-          OLD_URL="https://raw.githubusercontent.com/WildKernels/Wild_KSU"
+          OLD_URL="https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next"
           NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
           OLD_DIR1="Wild_KSU"
           OLD_DIR2="Wild KSU"
