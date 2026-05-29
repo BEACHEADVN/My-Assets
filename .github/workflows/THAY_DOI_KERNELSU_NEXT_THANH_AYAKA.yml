@@ -34,7 +34,7 @@ jobs:
       - name: SỬA BUILD.YML
         run: |
           cd remote-repo/.github/workflows/
-          OLD="Wild KSU"
+          OLD="KernelSU-Next"
           NEW="Ayaka"
           sed -i "s|$OLD|$NEW|g" build.yml
 
