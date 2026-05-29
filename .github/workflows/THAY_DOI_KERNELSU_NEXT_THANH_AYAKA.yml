@@ -16,7 +16,7 @@ jobs:
 
       - name: SỬA KERNELSU NEXT ACTION.YML
         run: |
-          cd remote-repo/.github/actions/kernelsu
+          cd remote-repo/.github/actions/kernelsu/
           
           OLD_URL="https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next"
           NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
