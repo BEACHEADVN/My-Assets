@@ -22,12 +22,14 @@ jobs:
           NEW_URL="https://raw.githubusercontent.com/BEACHEADVN/Ayaka"
           OLD_DIR1="Wild_KSU"
           OLD_DIR2="Wild KSU"
+          OLD_DIR3="KernelSU-Next"
           NEW_DIR="Ayaka"
           
           # Sửa trực tiếp file action.yml
           sed -i "s|$OLD_URL|$NEW_URL|g" action.yml
           sed -i "s|$OLD_DIR1|$NEW_DIR|g" action.yml
           sed -i "s|$OLD_DIR2|$NEW_DIR|g" action.yml
+          sed -i "s|$OLD_DIR3|$NEW_DIR|g" action.yml
 
       - name: SỬA BUILD.YML
         run: |
