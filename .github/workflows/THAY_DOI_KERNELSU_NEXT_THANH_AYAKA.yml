@@ -48,7 +48,7 @@ jobs:
           git status
           
           # Thêm tất cả các file đã sửa (bao gồm action.yml và build.yml)
-          git add .github/actions/wksu/action.yml
+          git add .github/actions/kernelsu/action.yml
           git add .github/workflows/build.yml
           
           # Hoặc dùng git add . để thêm tất cả thay đổi
@@ -58,17 +58,17 @@ jobs:
           if git diff-index --quiet HEAD; then
             echo "Không có thay đổi nào để commit."
           else
-            git commit -m "THAY ĐỔI WILD_KSU THÀNH AYAKA"
+            git commit -m "THAY ĐỔI KERNELSU NEXT THÀNH AYAKA"
             git push origin main
           fi
           
       - name: KIỂM TRA SAU KHI PUSH
         run: |
-          echo "=== NỘI DUNG WKSU ACTION.YML==="
-          echo "=== NỘI DUNG WKSU ACTION.YML==="
-          echo "=== NỘI DUNG WKSU ACTION.YML==="
+          echo "=== NỘI DUNG KERNELSU NEXT ACTION.YML==="
+          echo "=== NỘI DUNG KERNELSU NEXT ACTION.YML==="
+          echo "=== NỘI DUNG KERNELSU NEXT ACTION.YML==="
           sleep 5
-          TARGET_FILE="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/actions/wksu/action.yml"
+          TARGET_FILE="https://raw.githubusercontent.com/BEACHEADVN/GKI_KernelSU_SUSFS/main/.github/actions/kernelsu/action.yml"
           # Kiểm tra xem URL mới đã xuất hiện trên server chưa
           curl -H "Authorization: token ${{ secrets.GH_PAT }}" -sL $TARGET_FILE
 
