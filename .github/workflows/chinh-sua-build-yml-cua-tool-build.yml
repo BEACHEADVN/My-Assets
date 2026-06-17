@@ -24,36 +24,37 @@ jobs:
           TARGET_FILE="build.yml"
 
           echo "--- 2. Chỉnh sửa cấu hình required: true thành false ---"
-          # Sửa chính xác dòng required: true nằm ngay sau input_url
           sed -i '/input_url:/,/required:/s/required: true/required: false/' "$TARGET_FILE"
           
           echo "--- 3. Xóa các cụm từ /etc/mysql, /etc/php, mysql*, php* xuất hiện riêng lẻ ---"
-          # Tìm đúng dòng dọn dẹp trong file gốc và xóa bỏ các cụm từ chỉ định
           sed -i 's|/etc/mysql ||g' "$TARGET_FILE"
           sed -i 's|/etc/php ||g' "$TARGET_FILE"
           sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
-          echo "--- 4. Thay thế cấu hình khối jobs Initialize bằng Matrix mới ---"
-          # Tạo file chứa đoạn Matrix mới theo đúng chuẩn thụt lề gốc (2 spaces cho job, 4 spaces cho nội dung trong job)
+          echo "--- 4. Tạo file chứa đoạn Matrix mới (Thêm gạch chéo ngược chống nuốt biến) ---"
+          # Sử dụng dấu gạch chéo ngược \ trước dấu $ để ép GitHub Actions giữ nguyên chữ mà không tự biên dịch thành biến trống
           cat << 'EOF' > matrix_patch.txt
-            Initialize:
-              runs-on: ubuntu-latest
-              strategy:
-                matrix:
-                  device: [myron, socrates]
-                  region: [China, EEA]
-                  exclude:
-                    - device: socrates
-                      region: EEA
-                fail-fast: false
-              name: Build ROM (${{ matrix.device }} - ${{ matrix.region }})
-              env:
-                TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-                TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          EOF
+  Initialize:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        device: [myron, socrates]
+        region: [China, EEA]
+        exclude:
+          - device: socrates
+            region: EEA
+      fail-fast: false
+    name: Build ROM (\${{ matrix.device }} - \${{ matrix.region }})
+    env:
+      TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHANNEL_ID: \${{ secrets.TELEGRAM_CHANNEL_ID }}
+EOF
 
-          # Dùng awk để cắt bỏ khối cũ từ '  Initialize:' cho tới hết dòng '      TELEGRAM_CHANNEL_ID:' và thế chỗ bằng file tạm
+          # Loại bỏ dấu gạch chéo ngược vừa thêm sau khi file tạm đã được tạo an toàn trong workspace máy ảo
+          sed -i 's|\\\$|\$|g' matrix_patch.txt
+
+          echo "--- 5. Thay thế khối jobs Initialize bằng awk ---"
           awk '
             /^[[:space:]]*Initialize:/ {
               system("cat matrix_patch.txt")
@@ -81,7 +82,7 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Đồng bộ build.yml từ tiencv2006: Cấu hình Matrix cho Initialize, sửa URL ROM và dọn dẹp gói thừa"
+            git commit -m "Đồng bộ build.yml từ tiencv2006: Thêm cấu trúc Matrix chuẩn cho Initialize"
             git push origin HEAD:main
           fi
 
