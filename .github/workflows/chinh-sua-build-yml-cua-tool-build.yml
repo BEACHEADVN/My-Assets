@@ -34,21 +34,23 @@ jobs:
             # 3. Loại bỏ 2 dấu cách liên tiếp thành 1 dấu cách trên toàn file
             sed -i 's/  / /g' "$TARGET_FILE"
 
-            # 4. Tạo file tạm bằng cách echo từng dòng (Tránh lỗi parse chuỗi YAML của GitHub Actions)
-            echo "  Initialize:" > matrix_patch.txt
-            echo "    runs-on: ubuntu-latest" >> matrix_patch.txt
-            echo "    strategy:" >> matrix_patch.txt
-            echo "      matrix:" >> matrix_patch.txt
-            echo "        device: [myron, socrates]" >> matrix_patch.txt
-            echo "        region: [China, EEA]" >> matrix_patch.txt
-            echo "        exclude:" >> matrix_patch.txt
-            echo "          - device: socrates" >> matrix_patch.txt
-            echo "            region: EEA" >> matrix_patch.txt
-            echo "      fail-fast: false" >> matrix_patch.txt
-            echo "    name: Build ROM (\${{ matrix.device }} - \${{ matrix.region }})" >> matrix_patch.txt
-            echo "    env:" >> matrix_patch.txt
-            echo "      TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}" >> matrix_patch.txt
-            echo "      TELEGRAM_CHANNEL_ID: \${{ secrets.TELEGRAM_CHANNEL_ID }}" >> matrix_patch.txt
+            # 4. Tạo file tạm bằng cách sử dụng Single Quote EOF để giữ nguyên định dạng gốc không bị mất biến $
+            cat << 'MATRIX_DATA' > matrix_patch.txt
+  Initialize:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        device: [myron, socrates]
+        region: [China, EEA]
+        exclude:
+          - device: socrates
+            region: EEA
+      fail-fast: false
+    name: Build ROM (${{ matrix.device }} - ${{ matrix.region }})
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+MATRIX_DATA
 
             # 5. Dùng awk để thay thế khối Initialize cũ bằng file matrix_patch.txt vừa tạo
             awk '
