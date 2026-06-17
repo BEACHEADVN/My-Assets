@@ -50,7 +50,7 @@ jobs:
                 TELEGRAM_BOT_TOKEN: \$\{\{ secrets\.TELEGRAM_BOT_TOKEN \}\}\s*
                 TELEGRAM_CHANNEL_ID: \$\{\{ secrets\.TELEGRAM_CHANNEL_ID \}\}"""
           
-          replacement = """jobs:
+          replacement = r"""jobs:
             Initialize:
               runs-on: ubuntu-latest
               strategy:
