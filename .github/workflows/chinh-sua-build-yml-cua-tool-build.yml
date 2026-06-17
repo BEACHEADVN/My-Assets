@@ -6,7 +6,6 @@ on:
 jobs:
   patch-build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Destination Repo
         uses: actions/checkout@v4
@@ -16,41 +15,28 @@ jobs:
           path: remote-repo
 
       - name: Lấy file gốc từ tiencv2006 và tiến hành chỉnh sửa
-        shell: bash
         run: |
-          cd remote-repo/.github/workflows
-
-          echo "--- 1. Tải build.yml mới nhất ---"
-          curl -L \
-            -o build.yml \
-            https://raw.githubusercontent.com/tiencv2006/nothingsvn_xiaomi-toolbuild/main/.github/workflows/build.yml
+          cd remote-repo/.github/workflows/
+          
+          echo "--- 1. Tải nội dung file build.yml gốc từ repo tiencv2006 ---"
+          curl -L -o build.yml https://raw.githubusercontent.com/tiencv2006/nothingsvn_xiaomi-toolbuild/main/.github/workflows/build.yml
 
           TARGET_FILE="build.yml"
 
-          echo "--- 2. required: true -> false ---"
-          sed -i '/URL of the ROM to build/{n;s/required: true/required: false/}' "$TARGET_FILE"
-
-          echo "--- 3. Xóa chuỗi mysql/php ---"
-          sed -i 's|/etc/mysql||g' "$TARGET_FILE"
-          sed -i 's|/etc/php||g' "$TARGET_FILE"
-          sed -i 's|mysql\*||g' "$TARGET_FILE"
+          echo "--- 2. Chỉnh sửa cấu hình required: true thành false ---"
+          # Sửa chính xác dòng required: true nằm ngay sau input_url
+          sed -i '/input_url:/,/required:/s/required: true/required: false/' "$TARGET_FILE"
+          
+          echo "--- 3. Xóa các cụm từ /etc/mysql, /etc/php, mysql*, php* xuất hiện riêng lẻ ---"
+          # Tìm đúng dòng dọn dẹp trong file gốc và xóa bỏ các cụm từ chỉ định
+          sed -i 's|/etc/mysql ||g' "$TARGET_FILE"
+          sed -i 's|/etc/php ||g' "$TARGET_FILE"
+          sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
-          python3 <<'PY'
-          from pathlib import Path
-          import re
-          
-          f = Path("build.yml")
-          content = f.read_text()
-          
-          pattern = r"""jobs:\s*
-            Initialize:\s*
-              runs-on:\s*ubuntu-latest\s*
-              env:\s*
-                TELEGRAM_BOT_TOKEN:.*\n
-                TELEGRAM_CHANNEL_ID:.*"""
-          
-          replacement = """jobs:
+          echo "--- 4. Thay thế cấu hình khối jobs Initialize bằng Matrix mới ---"
+          # Tạo file chứa đoạn Matrix mới theo đúng chuẩn thụt lề gốc (2 spaces cho job, 4 spaces cho nội dung trong job)
+          cat << 'EOF' > matrix_patch.txt
             Initialize:
               runs-on: ubuntu-latest
               strategy:
@@ -64,37 +50,44 @@ jobs:
               name: Build ROM (${{ matrix.device }} - ${{ matrix.region }})
               env:
                 TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-                TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}"""
-          
-          new_content, count = re.subn(pattern, replacement, content, count=1)
-          
-          if count == 0:
-              print("Không tìm thấy block cần thay.")
-              exit(1)
-          
-          f.write_text(new_content)
-          print("Đã thay block Initialize.")
-          PY
+                TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          EOF
+
+          # Dùng awk để cắt bỏ khối cũ từ '  Initialize:' cho tới hết dòng '      TELEGRAM_CHANNEL_ID:' và thế chỗ bằng file tạm
+          awk '
+            /^[[:space:]]*Initialize:/ {
+              system("cat matrix_patch.txt")
+              skip = 1
+              next
+            }
+            skip && /TELEGRAM_CHANNEL_ID:/ {
+              skip = 0
+              next
+            }
+            skip { next }
+            { print }
+          ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
+
+          # Dọn dẹp file cấu hình tạm
+          rm -f matrix_patch.txt
 
       - name: Push Changes
         run: |
           cd remote-repo
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           if git diff --quiet; then
             echo "Không có thay đổi nào để push."
-            exit 0
+          else
+            git add .github/workflows/build.yml
+            git commit -m "Đồng bộ build.yml từ tiencv2006: Cấu hình Matrix cho Initialize, sửa URL ROM và dọn dẹp gói thừa"
+            git push origin HEAD:main
           fi
-
-          git add .github/workflows/build.yml
-          git commit -m "Đồng bộ build.yml từ tiencv2006"
-          git push origin HEAD:main
 
       - name: KIỂM TRA LẠI
         run: |
-          cd remote-repo/.github/workflows
-
-          echo "===== BLOCK INITIALIZE SAU KHI SỬA ====="
-          sed -n '/Initialize:/,/TELEGRAM_CHANNEL_ID:/p' build.yml
+          cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
+          echo "--- Kiểm tra khối Initialize mới và các bước dọn dẹp sau khi sửa ---"
+          head -n 40 "$TARGET_FILE"
