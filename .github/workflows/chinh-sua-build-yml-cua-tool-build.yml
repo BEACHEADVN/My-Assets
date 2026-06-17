@@ -35,21 +35,21 @@ jobs:
           echo "--- 4. Tạo file chứa đoạn Matrix mới (Thêm gạch chéo ngược chống nuốt biến) ---"
           # Sử dụng dấu gạch chéo ngược \ trước dấu $ để ép GitHub Actions giữ nguyên chữ mà không tự biên dịch thành biến trống
           cat << 'EOF' > matrix_patch.txt
-  Initialize:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        device: [myron, socrates]
-        region: [China, EEA]
-        exclude:
-          - device: socrates
-            region: EEA
-      fail-fast: false
-    name: Build ROM (\${{ matrix.device }} - \${{ matrix.region }})
-    env:
-      TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHANNEL_ID: \${{ secrets.TELEGRAM_CHANNEL_ID }}
-EOF
+            Initialize:
+              runs-on: ubuntu-latest
+              strategy:
+                matrix:
+                  device: [myron, socrates]
+                  region: [China, EEA]
+                  exclude:
+                    - device: socrates
+                      region: EEA
+                fail-fast: false
+              name: Build ROM (\${{ matrix.device }} - \${{ matrix.region }})
+              env:
+                TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
+                TELEGRAM_CHANNEL_ID: \${{ secrets.TELEGRAM_CHANNEL_ID }}
+          EOF
 
           # Loại bỏ dấu gạch chéo ngược vừa thêm sau khi file tạm đã được tạo an toàn trong workspace máy ảo
           sed -i 's|\\\$|\$|g' matrix_patch.txt
