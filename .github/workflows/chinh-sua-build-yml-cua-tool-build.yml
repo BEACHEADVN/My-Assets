@@ -14,28 +14,29 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: Sửa đổi và Cấu hình Matrix cho build.yml
+      - name: Lấy file gốc từ tiencv2006 và tiến hành chỉnh sửa
         run: |
           cd remote-repo/.github/workflows/
+          
+          echo "--- 1. Tải nội dung file build.yml gốc từ repo tiencv2006 ---"
+          curl -L -o build.yml https://raw.githubusercontent.com/tiencv2006/nothingsvn_xiaomi-toolbuild/main/.github/workflows/build.yml
+
           TARGET_FILE="build.yml"
 
-          echo "--- Tiến hành cấu hình file $TARGET_FILE ---"
-          if [ -f "$TARGET_FILE" ]; then
+          echo "--- 2. Chỉnh sửa cấu hình required: true thành false ---"
+          sed -i '/URL of the ROM to build/{n;s/required: true/required: false/}' "$TARGET_FILE"
           
-            # 1. Chuyển required: true thành false ngay sau dòng URL of the ROM to build
-            sed -i '/URL of the ROM to build/{n;s/required: true/required: false/}' "$TARGET_FILE"
-            
-            # 2. Xóa các cụm từ /etc/mysql, /etc/php, mysql*, php* xuất hiện riêng lẻ
-            sed -i -E 's|/etc/mysql||g' "$TARGET_FILE"
-            sed -i -E 's|/etc/php||g' "$TARGET_FILE"
-            sed -i -E 's|mysql\*||g' "$TARGET_FILE"
-            sed -i -E 's|php\*||g' "$TARGET_FILE"
-            
-            # 3. Loại bỏ 2 dấu cách liên tiếp thành 1 dấu cách trên toàn file
-            sed -i 's/  / /g' "$TARGET_FILE"
+          echo "--- 3. Xóa các cụm từ /etc/mysql, /etc/php, mysql*, php* ---"
+          sed -i -E 's|/etc/mysql||g' "$TARGET_FILE"
+          sed -i -E 's|/etc/php||g' "$TARGET_FILE"
+          sed -i -E 's|mysql\*||g' "$TARGET_FILE"
+          sed -i -E 's|php\*||g' "$TARGET_FILE"
+          
+          echo "--- 4. Loại bỏ 2 dấu cách liên tiếp thành 1 dấu cách ---"
+          sed -i 's/  / /g' "$TARGET_FILE"
 
-            # 4. Tạo file tạm bằng cách sử dụng Single Quote EOF để giữ nguyên định dạng gốc không bị mất biến $
-            cat << 'MATRIX_DATA' > matrix_patch.txt
+          echo "--- 5. Tạo khối Matrix mới ---"
+          cat << 'MATRIX_DATA' > matrix_patch.txt
   Initialize:
     runs-on: ubuntu-latest
     strategy:
@@ -52,28 +53,43 @@ jobs:
       TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
 MATRIX_DATA
 
-            # 5. Dùng awk để thay thế khối Initialize cũ bằng file matrix_patch.txt vừa tạo
-            awk '
-              /^[[:space:]]*Initialize:/ {
-                system("cat matrix_patch.txt")
-                skip = 1
-                next
-              }
-              skip && /TELEGRAM_CHANNEL_ID:/ {
-                skip = 0
-                next
-              }
-              skip { next }
-              { print }
-            ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
+          echo "--- 6. Tạo file Python script độc lập để xử lý replace ---"
+          cat << 'EOF' > patch_matrix.py
+import os
 
-            # Dọn dẹp file tạm
-            rm -f matrix_patch.txt
-            echo "Đã chỉnh sửa, dọn dẹp và cấu hình Matrix thành công."
-          else
-            echo "Lỗi: Không tìm thấy file $TARGET_FILE trong repo!"
-            exit 1
-          fi
+target_file = 'build.yml'
+matrix_file = 'matrix_patch.txt'
+
+if os.path.exists(target_file) and os.path.exists(matrix_file):
+    with open(target_file, 'r') as f:
+        content = f.read()
+
+    with open(matrix_file, 'r') as f:
+        matrix_content = f.read().strip('\n')
+
+    # Tìm khối Initialize cũ dựa trên 1 space sau khi đã dọn dẹp khoảng trắng ở bước 4
+    start_idx = content.find(' Initialize:')
+    if start_idx != -1:
+        end_idx = content.find('TELEGRAM_CHANNEL_ID:', start_idx)
+        if end_idx != -1:
+            next_newline = content.find('\n', end_idx)
+            new_content = content[:start_idx] + matrix_content + content[next_newline:]
+            with open(target_file, 'w') as f:
+                f.write(new_content)
+            print('Đã chèn khối Matrix thành công.')
+        else:
+            print('Không tìm thấy dòng TELEGRAM_CHANNEL_ID cũ.')
+    else:
+        print('Không tìm thấy khối Initialize: cũ.')
+else:
+    print('Thiếu file cấu hình đầu vào!')
+EOF
+
+          # Thực thi script python vừa tạo
+          python3 patch_matrix.py
+
+          # Dọn dẹp các file trung gian
+          rm -f matrix_patch.txt patch_matrix.py
 
       - name: Push Changes
         run: |
@@ -85,7 +101,7 @@ MATRIX_DATA
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Cấu hình Matrix cho Initialize, sửa URL ROM và dọn dẹp packages"
+            git commit -m "Đồng bộ build.yml từ tiencv2006: Thêm Matrix, sửa URL ROM, dọn dẹp packages"
             git push origin HEAD:main
           fi
 
@@ -93,5 +109,5 @@ MATRIX_DATA
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
-          echo "--- Nội dung phần cấu hình Initialize mới ---"
+          echo "--- Kiểm tra khối Initialize mới trong file ---"
           sed -n '/Initialize:/,/TELEGRAM_CHANNEL_ID:/p' "$TARGET_FILE" || true
