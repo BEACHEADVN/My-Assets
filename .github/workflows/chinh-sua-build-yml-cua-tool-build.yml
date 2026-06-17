@@ -14,14 +14,14 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: Sửa đổi và Dọn dẹp build.yml
+      - name: Sửa đổi và Cấu hình Matrix cho build.yml
         run: |
           cd remote-repo/.github/workflows/
-          
           TARGET_FILE="build.yml"
 
-          echo "--- Tiến hành chỉnh sửa file $TARGET_FILE ---"
+          echo "--- Tiến hành cấu hình file $TARGET_FILE ---"
           if [ -f "$TARGET_FILE" ]; then
+          
             # 1. Chuyển required: true thành false ngay sau dòng URL of the ROM to build
             sed -i '/URL of the ROM to build/{n;s/required: true/required: false/}' "$TARGET_FILE"
             
@@ -31,10 +31,46 @@ jobs:
             sed -i -E 's|mysql\*||g' "$TARGET_FILE"
             sed -i -E 's|php\*||g' "$TARGET_FILE"
             
-            # 3. Loại bỏ 2 dấu cách liên tiếp thành 1 dấu cách
+            # 3. Loại bỏ 2 dấu cách liên tiếp thành 1 dấu cách trên toàn file trước khi chèn matrix
             sed -i 's/  / /g' "$TARGET_FILE"
-            
-            echo "Đã chỉnh sửa và dọn dẹp file thành công."
+
+            # 4. Thay thế cấu hình job Initialize cũ thành cấu hình Matrix mới
+            # Tạo file tạm chứa nội dung matrix mới với chuẩn thụt lề 2 dấu cách
+            cat << 'EOF' > matrix_patch.txt
+  Initialize:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        device: [myron, socrates]
+        region: [China, EEA]
+        exclude:
+          - device: socrates
+            region: EEA
+      fail-fast: false
+    name: Build ROM (${{ matrix.device }} - ${{ matrix.region }})
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+EOF
+
+            # Dùng awk để tìm khối Initialize cũ (từ " Initialize:" cho tới hết " TELEGRAM_CHANNEL_ID:") và thay bằng file tạm
+            awk '
+              /^[[:space:]]*Initialize:/ {
+                system("cat matrix_patch.txt")
+                skip = 1
+                next
+              }
+              skip && /TELEGRAM_CHANNEL_ID:/ {
+                skip = 0
+                next
+              }
+              skip { next }
+              { print }
+            ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
+
+            # Dọn dẹp file tạm
+            rm -f matrix_patch.txt
+            echo "Đã chỉnh sửa, dọn dẹp và cấu hình Matrix thành công."
           else
             echo "Lỗi: Không tìm thấy file $TARGET_FILE trong repo!"
             exit 1
@@ -50,7 +86,7 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Cấu hình lại URL ROM, xóa mysql/php và dọn dẹp khoảng trắng"
+            git commit -m "Cấu hình Matrix cho Initialize, sửa URL ROM và dọn dẹp packages"
             git push origin HEAD:main
           fi
 
@@ -58,5 +94,5 @@ jobs:
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
-          echo "--- Nội dung khu vực URL của ROM sau khi sửa ---"
-          grep -A 2 "URL of the ROM to build" "$TARGET_FILE" || true
+          echo "--- Nội dung phần cấu hình Initialize mới ---"
+          sed -n '/Initialize:/,/TELEGRAM_CHANNEL_ID:/p' "$TARGET_FILE"
