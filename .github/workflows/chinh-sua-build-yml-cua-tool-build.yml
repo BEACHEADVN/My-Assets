@@ -1,4 +1,4 @@
-name: CHỈNH SỬA BUILD.YML CỦA STOCK TOOL BUILD
+name: CHỈNH SỬA BUILD.YML CỦA TOOL BUILD
 
 on:
   workflow_dispatch:
