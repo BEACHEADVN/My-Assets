@@ -1,4 +1,4 @@
-name: CHỈNH SỬA WORKFLOW CONFIG
+name: CHỈNH SỬA BUILD.YML CỦA STOCK TOOL BUILD
 
 on:
   workflow_dispatch:
