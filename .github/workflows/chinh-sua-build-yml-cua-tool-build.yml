@@ -38,18 +38,19 @@ jobs:
 
           python3 <<'PY'
           from pathlib import Path
+          import re
           
           f = Path("build.yml")
           content = f.read_text()
           
-          old = """jobs:
-            Initialize:
-              runs-on: ubuntu-latest
-              env:
-                TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-                TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}"""
+          pattern = r"""jobs:\s*
+            Initialize:\s*
+              runs-on:\s*ubuntu-latest\s*
+              env:\s*
+                TELEGRAM_BOT_TOKEN:.*\n
+                TELEGRAM_CHANNEL_ID:.*"""
           
-          new = """jobs:
+          replacement = """jobs:
             Initialize:
               runs-on: ubuntu-latest
               strategy:
@@ -65,11 +66,13 @@ jobs:
                 TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
                 TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}"""
           
-          if old not in content:
+          new_content, count = re.subn(pattern, replacement, content, count=1)
+          
+          if count == 0:
               print("Không tìm thấy block cần thay.")
               exit(1)
           
-          f.write_text(content.replace(old, new, 1))
+          f.write_text(new_content)
           print("Đã thay block Initialize.")
           PY
 
