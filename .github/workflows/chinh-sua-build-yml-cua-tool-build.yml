@@ -1,4 +1,4 @@
-name: CHỈNH SỬA WORKFLOW CONFIG
+name: CHỈNH SỬA BUILD.YML CỦA TOOL BUILD
 
 on:
   workflow_dispatch:
@@ -14,11 +14,10 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: Sửa đổi và Dọn dẹp config trong workflow
+      - name: Sửa đổi và Dọn dẹp build.yml
         run: |
           cd remote-repo/.github/workflows/
           
-          # Thay thế bằng tên file chính xác trong repo của bạn (ví dụ: build.yml)
           TARGET_FILE="build.yml"
 
           echo "--- Tiến hành chỉnh sửa file $TARGET_FILE ---"
@@ -27,18 +26,17 @@ jobs:
             sed -i '/URL of the ROM to build/{n;s/required: true/required: false/}' "$TARGET_FILE"
             
             # 2. Xóa các cụm từ /etc/mysql, /etc/php, mysql*, php* xuất hiện riêng lẻ
-            # Sử dụng \b (word boundary) hoặc khoảng trắng để đảm bảo xóa riêng lẻ, không dính vào từ khác
             sed -i -E 's|/etc/mysql||g' "$TARGET_FILE"
             sed -i -E 's|/etc/php||g' "$TARGET_FILE"
             sed -i -E 's|mysql\*||g' "$TARGET_FILE"
             sed -i -E 's|php\*||g' "$TARGET_FILE"
             
-            # 3. Loại bỏ 2 dấu cách liên tiếp (lặp lại cho đến khi sạch hẳn)
+            # 3. Loại bỏ 2 dấu cách liên tiếp thành 1 dấu cách
             sed -i 's/  / /g' "$TARGET_FILE"
             
             echo "Đã chỉnh sửa và dọn dẹp file thành công."
           else
-            echo "Không tìm thấy file $TARGET_FILE"
+            echo "Lỗi: Không tìm thấy file $TARGET_FILE trong repo!"
             exit 1
           fi
 
@@ -51,8 +49,8 @@ jobs:
           if git diff --quiet; then
             echo "Không có thay đổi nào để push."
           else
-            git add .github/workflows/
-            git commit -m "Cấu hình lại URL ROM và xóa bỏ các gói mysql/php thừa"
+            git add .github/workflows/build.yml
+            git commit -m "Cấu hình lại URL ROM, xóa mysql/php và dọn dẹp khoảng trắng"
             git push origin HEAD:main
           fi
 
@@ -60,5 +58,5 @@ jobs:
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
-          echo "--- Nội dung khu vực URL của ROM ---"
+          echo "--- Nội dung khu vực URL của ROM sau khi sửa ---"
           grep -A 2 "URL of the ROM to build" "$TARGET_FILE" || true
