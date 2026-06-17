@@ -1,0 +1,53 @@
+name: CHỈNH SỬA WORKFLOW CONFIG
+
+on:
+  workflow_dispatch:
+
+jobs:
+  patch-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Destination Repo
+        uses: actions/checkout@v4
+        with:
+          repository: BEACHEADVN/nothingsvn_xiaomi-toolbuild
+          token: ${{ secrets.GH_PAT }}
+          path: remote-repo
+
+      - name: Sửa đổi config trong workflow
+        run: |
+          cd remote-repo/.github/workflows/
+          
+          # Tên file workflow bạn cần sửa (ví dụ: build.yml). 
+          # Bạn hãy thay đổi "build.yml" thành tên file chính xác trong repo nếu nó tên khác (vd: main.yml, rom.yml).
+          TARGET_FILE="build.yml"
+
+          echo "--- Kiểm tra trạng thái hiện tại ---"
+          if grep -q "URL of the ROM to build" "$TARGET_FILE"; then
+            # Sử dụng sed để tìm dòng chứa description và sửa 'required: true' ở dòng ngay sau đó thành false
+            sed -i '/URL of the ROM to build/{n;s/required: true/required: false/}' "$TARGET_FILE"
+            echo "Đã cập nhật required thành false thành công."
+          else
+            echo "Không tìm thấy đoạn description yêu cầu trong file $TARGET_FILE"
+          fi
+
+      - name: Push Changes
+        run: |
+          cd remote-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet; then
+            echo "Không có thay đổi nào để push."
+          else
+            git add .github/workflows/
+            git commit -m "Cấu hình lại URL của ROM thành required: false"
+            git push origin HEAD:main
+          fi
+
+      - name: KIỂM TRA LẠI
+        run: |
+          cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
+          echo "--- Nội dung sau khi sửa ---"
+          grep -A 2 "URL of the ROM to build" "$TARGET_FILE"
