@@ -36,57 +36,42 @@ jobs:
           sed -i 's|mysql\*||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
-          echo "--- 4. Tạo block Matrix mới ---"
-
-          printf '%s\n' \
-          'Initialize:' \
-          '  runs-on: ubuntu-latest' \
-          '  strategy:' \
-          '    matrix:' \
-          '      device: [myron, socrates]' \
-          '      region: [China, EEA]' \
-          '      exclude:' \
-          '        - device: socrates' \
-          '          region: EEA' \
-          '    fail-fast: false' \
-          '' \
-          '  name: Build ROM (${{ matrix.device }} - ${{ matrix.region }})' \
-          '' \
-          '  env:' \
-          '    TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}' \
-          '    TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}' \
-          > matrix_patch.txt
-          echo "--- 5. Thay thế khối Initialize bằng Python ---"
-
-          python3 <<'PYTHON'
+          python3 <<'PY'
           from pathlib import Path
           
-          target = Path("build.yml")
-          matrix = Path("matrix_patch.txt").read_text()
+          f = Path("build.yml")
           
-          content = target.read_text()
+          old = """jobs:
+            Initialize:
+              runs-on: ubuntu-latest
+              env:
+                TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+                TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}"""
           
-          start = content.find("Initialize:")
-          if start == -1:
-              raise SystemExit("Không tìm thấy Initialize:")
+          new = """jobs:
+            Initialize:
+              runs-on: ubuntu-latest
+              strategy:
+                matrix:
+                  device: [myron, socrates]
+                  region: [China, EEA]
+                  exclude:
+                    - device: socrates
+                      region: EEA
+                fail-fast: false
+              name: Build ROM (${{ matrix.device }} - ${{ matrix.region }})
+              env:
+                TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+                TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}"""
           
-          end = content.find("TELEGRAM_CHANNEL_ID:", start)
-          if end == -1:
-              raise SystemExit("Không tìm thấy TELEGRAM_CHANNEL_ID:")
+          content = f.read_text()
           
-          end = content.find("\n", end)
-          if end == -1:
-              end = len(content)
-          
-          new_content = content[:start] + matrix + content[end:]
-          
-          target.write_text(new_content)
-          
-          print("Đã thay block Initialize thành công.")
-          PYTHON
-          
-                    rm -f matrix_patch.txt
-
+          if old in content:
+              f.write_text(content.replace(old, new, 1))
+              print("Đã thay block Initialize.")
+          else:
+              print("Không tìm thấy block cần thay.")
+          PY
       - name: Push Changes
         run: |
           cd remote-repo
