@@ -38,17 +38,19 @@ jobs:
 
           python3 <<'PY'
           from pathlib import Path
+          import re
           
           f = Path("build.yml")
+          content = f.read_text()
           
-          old = """jobs:
-            Initialize:
-              runs-on: ubuntu-latest
-              env:
-                TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-                TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}"""
+          pattern = r"""jobs:\s*
+            Initialize:\s*
+              runs-on: ubuntu-latest\s*
+              env:\s*
+                TELEGRAM_BOT_TOKEN: \$\{\{ secrets\.TELEGRAM_BOT_TOKEN \}\}\s*
+                TELEGRAM_CHANNEL_ID: \$\{\{ secrets\.TELEGRAM_CHANNEL_ID \}\}"""
           
-          new = """jobs:
+          replacement = """jobs:
             Initialize:
               runs-on: ubuntu-latest
               strategy:
@@ -64,14 +66,16 @@ jobs:
                 TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
                 TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}"""
           
-          content = f.read_text()
+          new_content, count = re.subn(pattern, replacement, content, count=1)
           
-          if old in content:
-              f.write_text(content.replace(old, new, 1))
-              print("Đã thay block Initialize.")
-          else:
+          if count == 0:
               print("Không tìm thấy block cần thay.")
+              exit(1)
+          
+          f.write_text(new_content)
+          print("Đã thay block Initialize.")
           PY
+
       - name: Push Changes
         run: |
           cd remote-repo
