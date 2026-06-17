@@ -32,8 +32,8 @@ jobs:
           sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
-          echo "--- 4. Tạo file chứa đoạn Matrix mới (Thêm gạch chéo ngược chống nuốt biến) ---"
-          # Sử dụng dấu gạch chéo ngược \ trước dấu $ để ép GitHub Actions giữ nguyên chữ mà không tự biên dịch thành biến trống
+          echo "--- 4. Tạo khối Matrix bằng cách thay thế ký tự tránh bộ lọc GitHub ---"
+          # Thay vì dùng ${{ ... }}, ta dùng __GHA_START__ { ... } để đánh dấu, lừa GitHub không parse nhầm
           cat << 'EOF' > matrix_patch.txt
             Initialize:
               runs-on: ubuntu-latest
@@ -45,14 +45,14 @@ jobs:
                     - device: socrates
                       region: EEA
                 fail-fast: false
-              name: Build ROM (\${{ matrix.device }} - \${{ matrix.region }})
+              name: Build ROM (__GHA_START__{ matrix.device }} - __GHA_START__{ matrix.region }})
               env:
-                TELEGRAM_BOT_TOKEN: \${{ secrets.TELEGRAM_BOT_TOKEN }}
-                TELEGRAM_CHANNEL_ID: \${{ secrets.TELEGRAM_CHANNEL_ID }}
+                TELEGRAM_BOT_TOKEN: __GHA_START__{ secrets.TELEGRAM_BOT_TOKEN }}
+                TELEGRAM_CHANNEL_ID: __GHA_START__{ secrets.TELEGRAM_CHANNEL_ID }}
           EOF
 
-          # Loại bỏ dấu gạch chéo ngược vừa thêm sau khi file tạm đã được tạo an toàn trong workspace máy ảo
-          sed -i 's|\\\$|\$|g' matrix_patch.txt
+          # Dùng sed chuyển chữ __GHA_START__ thành dấu $ đúng nghĩa ngay trên máy ảo
+          sed -i 's|__GHA_START__|\\$|g' matrix_patch.txt
 
           echo "--- 5. Thay thế khối jobs Initialize bằng awk ---"
           awk '
@@ -82,7 +82,7 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Đồng bộ build.yml từ tiencv2006: Thêm cấu trúc Matrix chuẩn cho Initialize"
+            git commit -m "Đồng bộ build.yml từ tiencv2006: Thêm Matrix, sửa URL ROM, dọn dẹp packages"
             git push origin HEAD:main
           fi
 
@@ -90,5 +90,5 @@ jobs:
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
-          echo "--- Kiểm tra khối Initialize mới và các bước dọn dẹp sau khi sửa ---"
-          head -n 40 "$TARGET_FILE"
+          echo "--- Kiểm tra khối Initialize mới sau khi sửa ---"
+          sed -n '/Initialize:/,/TELEGRAM_CHANNEL_ID:/p' "$TARGET_FILE" || true
