@@ -60,7 +60,6 @@ jobs:
           ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
 
       - name: Di chuyển bước Install Stuff lên trước Start Notify
-      - name: Di chuyển bước Install Stuff lên trước Start Notify
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
