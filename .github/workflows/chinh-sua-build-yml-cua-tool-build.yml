@@ -7,8 +7,6 @@ jobs:
   patch-build:
     runs-on: ubuntu-latest
     steps:
-      
-      ### 1. KHỞI TẠO & TẢI SOURCE CODE ###
       - name: Step 1: Checkout Destination Repo
         uses: actions/checkout@v4
         with:
@@ -27,7 +25,6 @@ jobs:
           curl -L -o matrix_patch.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Matrix-source.txt
           curl -L -o insert_install_stuff.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/insert_install_stuff.txt
 
-      ### 2. TIẾN HÀNH CHỈNH SỬA FILE (PATCHING) ###
       - name: Step 4: Sửa required URL (true -> false) & Dọn dẹp Packages lẻ
         run: |
           cd remote-repo/.github/workflows/
@@ -75,7 +72,6 @@ jobs:
           # Xóa khối Install Stuff cũ ở phía dưới file
           sed -i '/- name: Install Stuff/,/sudo pip3 install setuptools/d' "$TARGET_FILE"
 
-      ### 3. DỌN DẸP & ĐẨY LÊN REPO (PUSH) ###
       - name: Step 7: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
