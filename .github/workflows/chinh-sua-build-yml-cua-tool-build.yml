@@ -63,14 +63,31 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Chèn khối Install Stuff mới vào trước Start Notify
-          sed -i '/- name: Start Notify/ {
-            r insert_install_stuff.txt
-            N
-          }' "$TARGET_FILE"
-
-          # Xóa khối Install Stuff cũ ở phía dưới file
-          sed -i '/- name: Install Stuff/,/sudo pip3 install setuptools/d' "$TARGET_FILE"
+          # Dùng awk để cắt khối Install Stuff cũ ở dưới và chèn lên trước Start Notify một cách an toàn
+          awk '
+            # Nếu gặp dòng Start Notify, chèn nội dung file insert_install_stuff.txt lên trước, rồi mới in dòng Notify
+            /- name: Start Notify/ {
+              system("cat insert_install_stuff.txt")
+              print
+              next
+            }
+            # Nếu gặp khối Install Stuff cũ ở phía dưới, kích hoạt bỏ qua (xóa khối cũ)
+            /- name: Install Stuff/ {
+              skip = 1
+              next
+            }
+            # Kết thúc việc bỏ qua khi gặp dòng lệnh kết thúc của khối Install Stuff cũ
+            skip && /sudo pip3 install setuptools/ {
+              skip = 0
+              next
+            }
+            # Bỏ qua các dòng nằm trong khối Install Stuff cũ
+            skip {
+              next
+            }
+            # In các dòng bình thường còn lại
+            { print }
+          ' "$TARGET_FILE" > tmp_move.yml && mv tmp_move.yml "$TARGET_FILE"
 
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
