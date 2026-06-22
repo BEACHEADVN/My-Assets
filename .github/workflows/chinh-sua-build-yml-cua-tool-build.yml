@@ -39,14 +39,6 @@ jobs:
           sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
-      - name: Thay thế biến input_url có điều kiện env
-        run: |
-          cd remote-repo/.github/workflows/
-          TARGET_FILE="build.yml"
-          
-          # Đã sửa: Loại bỏ dấu \ trước ký tự || để tránh ghi đè sai cú pháp vào file đích
-          sed -i 's|\${{ inputs.input_url }}|\${{ inputs.input_url || env.AUTO_INPUT_URL }}|g' "$TARGET_FILE"
-
       - name: Thay thế khối Initialize bằng Matrix-source
         run: |
           cd remote-repo/.github/workflows/
@@ -103,6 +95,17 @@ jobs:
 
           # Dọn dẹp file sửa lề tạm
           rm -f fixed_install_stuff.txt
+
+      - name: Thay thế biến input_url có điều kiện env
+        run: |
+          cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
+          
+          # Dùng awk để thay thế chuỗi chính xác 100% không sợ lỗi ký tự đặc biệt
+          awk '{
+            gsub(/\${{ inputs.input_url }}/, "${{ inputs.input_url || env.AUTO_INPUT_URL }}")
+            print
+          }' "$TARGET_FILE" > tmp_url.yml && mv tmp_url.yml "$TARGET_FILE"
 
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
