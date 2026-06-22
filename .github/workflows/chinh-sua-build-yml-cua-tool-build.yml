@@ -17,11 +17,10 @@ jobs:
       - name: Lấy file gốc từ tiencv2006 và tiến hành chỉnh sửa
         run: |
           cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
           
           echo "--- 1. Tải nội dung file build.yml gốc từ repo tiencv2006 ---"
-          curl -L -o build.yml https://raw.githubusercontent.com/tiencv2006/nothingsvn_xiaomi-toolbuild/main/.github/workflows/build.yml
-
-          TARGET_FILE="build.yml"
+          curl -L -o "$TARGET_FILE" https://raw.githubusercontent.com/tiencv2006/nothingsvn_xiaomi-toolbuild/main/.github/workflows/build.yml
 
           echo "--- 2. Chỉnh sửa cấu hình required: true thành false ---"
           sed -i '/input_url:/,/required:/s/required: true/required: false/' "$TARGET_FILE"
@@ -32,26 +31,9 @@ jobs:
           sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
-          echo "--- 4. Tạo khối Matrix bằng cách thay thế ký tự tránh bộ lọc GitHub ---"
-          cat << 'EOF' > matrix_patch.txt
-            Initialize:
-              runs-on: ubuntu-latest
-              strategy:
-                matrix:
-                  device: [myron, socrates]
-                  region: [China, EEA]
-                  exclude:
-                    - device: socrates
-                      region: EEA
-                fail-fast: false
-              name: Build ROM (__GHA_START__{ matrix.device }} - __GHA_START__{ matrix.region }})
-              env:
-                TELEGRAM_BOT_TOKEN: __GHA_START__{ secrets.TELEGRAM_BOT_TOKEN }}
-                TELEGRAM_CHANNEL_ID: __GHA_START__{ secrets.TELEGRAM_CHANNEL_ID }}
-          EOF
-
-          # Dùng sed chuyển chữ __GHA_START__ thành dấu $ đúng nghĩa ngay trên máy ảo
-          sed -i 's|__GHA_START__|\\$|g' matrix_patch.txt
+          echo "--- 4. Tải khối Matrix chuẩn từ My-Assets ---"
+          # Sử dụng link raw để tải nội dung text gốc
+          curl -L -o matrix_patch.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Matrix-source.txt
 
           echo "--- 5. Thay thế khối jobs Initialize bằng awk ---"
           awk '
@@ -68,7 +50,7 @@ jobs:
             { print }
           ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
 
-          # Dọn dẹp file cấu hình tạm
+          # Dọn dẹp file tạm
           rm -f matrix_patch.txt
 
       - name: Push Changes
@@ -81,7 +63,7 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Đồng bộ build.yml từ tiencv2006: Thêm Matrix, sửa URL ROM, dọn dẹp packages"
+            git commit -m "Đồng bộ build.yml từ tiencv2006: Thêm Matrix từ nguồn ngoài, sửa URL ROM, dọn dẹp packages"
             git push origin HEAD:main
           fi
 
