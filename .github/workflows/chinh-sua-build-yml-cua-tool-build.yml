@@ -46,7 +46,8 @@ jobs:
           
           awk '
             /^[[:space:]]*Initialize:/ {
-              system("cat matrix_patch.txt")
+              # tail -n +2 sẽ bỏ qua dòng đầu tiên (chữ jobs:) của file patch
+              system("tail -n +2 matrix_patch.txt")
               skip = 1
               next
             }
