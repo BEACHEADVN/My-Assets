@@ -39,6 +39,14 @@ jobs:
           sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
+      - name: Thay thế biến input_url có điều kiện env
+        run: |
+          cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
+          
+          # Tìm và thay thế chính xác chuỗi biến URL sang định dạng fallback env
+          sed -i 's|\${{ inputs.input_url }}|\${{ inputs.input_url \|\| env.AUTO_INPUT_URL }}|g' "$TARGET_FILE"
+
       - name: Thay thế khối Initialize bằng Matrix-source
         run: |
           cd remote-repo/.github/workflows/
@@ -46,7 +54,7 @@ jobs:
           
           awk '
             /^[[:space:]]*Initialize:/ {
-              # tail -n +2 sẽ bỏ qua dòng đầu tiên (chữ jobs:) của file patch
+              # tail -n +2 bỏ qua dòng "jobs:" bị thừa từ file nguồn ngoài
               system("tail -n +2 matrix_patch.txt")
               skip = 1
               next
@@ -64,8 +72,7 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Tự động chuẩn hóa thụt lề file insert_install_stuff.txt trước khi chèn
-          # Đảm bảo '- name:' lùi vào 6 khoảng trắng, 'run:' lùi vào 8 khoảng trắng, và các dòng lệnh lùi vào 10 khoảng trắng
+          # Tự động chuẩn hóa thụt lề file insert_install_stuff.txt trước khi chèn để tránh lỗi YAML
           awk '
             /^[[:space:]]*- name:/ { sub(/^[[:space:]]*/, "      "); print; next }
             /^[[:space:]]*run:/ { sub(/^[[:space:]]*/, "        "); print; next }
@@ -73,34 +80,30 @@ jobs:
             { print }
           ' insert_install_stuff.txt > fixed_install_stuff.txt
 
-          # Dùng awk để cắt khối Install Stuff cũ ở dưới và chèn khối đã sửa lề lên trước Start Notify
+          # Cắt khối Install Stuff cũ ở dưới và chèn khối mới lên trước Start Notify
           awk '
-            # Nếu gặp dòng Start Notify, chèn nội dung file đã sửa lề lên trước, rồi mới in dòng Notify
             /- name: Start Notify/ {
               system("cat fixed_install_stuff.txt")
               print
               next
             }
-            # Nếu gặp khối Install Stuff cũ ở phía dưới, kích hoạt bỏ qua (xóa khối cũ)
             /- name: Install Stuff/ {
               skip = 1
               next
             }
-            # Kết thúc việc bỏ qua khi gặp dòng lệnh kết thúc của khối Install Stuff cũ
             skip && /sudo pip3 install setuptools/ {
               skip = 0
               next
             }
-            # Bỏ qua các dòng nằm trong khối Install Stuff cũ
             skip {
               next
             }
-            # In các dòng bình thường còn lại
             { print }
           ' "$TARGET_FILE" > tmp_move.yml && mv tmp_move.yml "$TARGET_FILE"
 
           # Dọn dẹp file sửa lề tạm
           rm -f fixed_install_stuff.txt
+
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
@@ -116,7 +119,7 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Đồng bộ build.yml: Thêm Matrix, dịch chuyển Install Stuff lên trước Start Notify"
+            git commit -m "Đồng bộ build.yml: Cấu hình Matrix, đẩy Install Stuff lên trước và cập nhật biến input_url"
             git push origin HEAD:main
           fi
 
