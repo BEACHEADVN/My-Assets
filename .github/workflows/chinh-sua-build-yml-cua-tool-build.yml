@@ -7,25 +7,25 @@ jobs:
   patch-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Step 1: Checkout Destination Repo
+      - name: Checkout Destination Repo
         uses: actions/checkout@v4
         with:
           repository: BEACHEADVN/nothingsvn_xiaomi-toolbuild
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: Step 2: Tải file build.yml gốc từ tiencv2006
+      - name: Tải file build.yml gốc từ tiencv2006
         run: |
           cd remote-repo/.github/workflows/
           curl -L -o "build.yml" https://raw.githubusercontent.com/tiencv2006/nothingsvn_xiaomi-toolbuild/main/.github/workflows/build.yml
 
-      - name: Step 3: Tải các khối cấu hình patch từ My-Assets
+      - name: Tải các khối cấu hình patch từ My-Assets
         run: |
           cd remote-repo/.github/workflows/
           curl -L -o matrix_patch.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Matrix-source.txt
           curl -L -o insert_install_stuff.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/insert_install_stuff.txt
 
-      - name: Step 4: Sửa required URL (true -> false) & Dọn dẹp Packages lẻ
+      - name: Sửa required URL (true -> false) & Dọn dẹp Packages lẻ
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
@@ -39,7 +39,7 @@ jobs:
           sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
-      - name: Step 5: Thay thế khối Initialize bằng Matrix-source
+      - name: Thay thế khối Initialize bằng Matrix-source
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
@@ -58,7 +58,7 @@ jobs:
             { print }
           ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
 
-      - name: Step 6: Di chuyển bước Install Stuff lên trước Start Notify
+      - name: Di chuyển bước Install Stuff lên trước Start Notify
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
@@ -72,12 +72,12 @@ jobs:
           # Xóa khối Install Stuff cũ ở phía dưới file
           sed -i '/- name: Install Stuff/,/sudo pip3 install setuptools/d' "$TARGET_FILE"
 
-      - name: Step 7: Dọn dẹp file cấu hình tạm (.txt)
+      - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
           rm -f matrix_patch.txt insert_install_stuff.txt
 
-      - name: Step 8: Push Thay Đổi Lên GitHub
+      - name: Push Thay Đổi Lên GitHub
         run: |
           cd remote-repo
           git config user.name "github-actions[bot]"
@@ -91,7 +91,7 @@ jobs:
             git push origin HEAD:main
           fi
 
-      - name: Step 9: Kiểm tra lại cấu trúc sau khi sửa
+      - name: Kiểm tra lại cấu trúc sau khi sửa
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
