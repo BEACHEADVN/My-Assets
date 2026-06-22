@@ -24,7 +24,6 @@ jobs:
           cd remote-repo/.github/workflows/
           curl -L -o matrix_patch.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Matrix-source.txt
           curl -L -o insert_install_stuff.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/insert_install_stuff.txt
-          # Tải thêm file script cào link ROM tự động của bạn
           curl -L -o Fetch-url.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Fetch-url.txt
 
       - name: Sửa required URL (true -> false) & Dọn dẹp Packages lẻ
@@ -83,12 +82,6 @@ jobs:
             { print }
           ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
 
-      - name: Lấy Link ROM Tự Động (Trước Notify)
-        run: |
-          cd remote-repo/.github/workflows/
-          # Thực thi trực tiếp file script Python vừa tải về từ My-Assets
-          python3 Fetch-url.txt
-
       - name: Di chuyển bước Install Stuff lên trước Start Notify
         run: |
           cd remote-repo/.github/workflows/
@@ -126,6 +119,32 @@ jobs:
           # Dọn dẹp file sửa lề tạm
           rm -f fixed_install_stuff.txt
 
+      - name: Chèn khối Fetch-url vào trước Start Notify
+        run: |
+          cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
+          
+          # Chuẩn hóa lại khoảng trắng thụt lề đầu dòng cho file Fetch-url.txt (6 khoảng trắng cho - name)
+          awk '
+            /^[[:space:]]*- name:/ { sub(/^[[:space:]]*/, "      "); print; next }
+            /^[[:space:]]*run:/ { sub(/^[[:space:]]*/, "        "); print; next }
+            /^[[:space:]]*env:/ { sub(/^[[:space:]]*/, "        "); print; next }
+            /^[[:space:]]*/ { sub(/^[[:space:]]*/, "          "); print; next }
+            { print }
+          ' Fetch-url.txt > fixed_fetch_url.txt
+
+          # Tìm vị trí Start Notify để chèn khối fetch link lên phía trước (lúc này nằm dưới Install Stuff vừa đổi)
+          awk '
+            /- name: Start Notify/ {
+              system("cat fixed_fetch_url.txt")
+              print
+              next
+            }
+            { print }
+          ' "$TARGET_FILE" > tmp_fetch.yml && mv tmp_fetch.yml "$TARGET_FILE"
+          
+          rm -f fixed_fetch_url.txt
+
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
@@ -141,15 +160,6 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Đồng bộ build.yml: Chạy Fetch-url từ xa, cấu hình Matrix, đẩy Install Stuff lên trước"
+            git commit -m "Đồng bộ build.yml: Cấu hình Matrix, đẩy Install Stuff lên trước và chèn Fetch-url"
             git push origin HEAD:main
           fi
-
-      - name: Kiểm tra lại cấu trúc sau khi sửa
-        run: |
-          cd remote-repo/.github/workflows/
-          TARGET_FILE="build.yml"
-          echo "=== KIỂM TRA KHỐI INITIALIZE & MATRIX ==="
-          sed -n '/Initialize:/,/TELEGRAM_CHANNEL_ID:/p' "$TARGET_FILE" || true
-          echo "=== KIỂM TRA THỨ TỰ INSTALL STUFF & NOTIFY ==="
-          grep -E "name: Install Stuff|name: Start Notify" "$TARGET_FILE" || true
