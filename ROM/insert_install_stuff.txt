@@ -1,9 +1,11 @@
 - name: Install Stuff
         run: |
-          sudo bash setup.sh
-
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test 
           sudo apt-get update
-          sudo apt-get install -y p7zip-full jq curl python3-pip unzip libc++1 libc++-dev bsdextrautils zstd bc zip
+          sudo apt-get install -y aria2 jq rclone sshpass python-is-python3 wget python3 lz4 xz-utils device-tree-compiler zlib1g-dev gcc g++ libc6 libstdc++6 python3-pip dialog libgtk-3-dev aapt busybox zip erofs-utils unzip p7zip-full zipalign zstd bc android-sdk-libsparse-utils xmlstarlet
+          sudo pip3 install ConfigObj
+          sudo pip3 install telebot
+          sudo pip3 install setuptools
 
           pip3 install requests beautifulsoup4
 
