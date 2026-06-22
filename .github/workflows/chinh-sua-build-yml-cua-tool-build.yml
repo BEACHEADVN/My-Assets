@@ -7,35 +7,46 @@ jobs:
   patch-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Destination Repo
+      
+      ### 1. KHỞI TẠO & TẢI SOURCE CODE ###
+      - name: Step 1: Checkout Destination Repo
         uses: actions/checkout@v4
         with:
           repository: BEACHEADVN/nothingsvn_xiaomi-toolbuild
           token: ${{ secrets.GH_PAT }}
           path: remote-repo
 
-      - name: Lấy file gốc từ tiencv2006 và tiến hành chỉnh sửa
+      - name: Step 2: Tải file build.yml gốc từ tiencv2006
+        run: |
+          cd remote-repo/.github/workflows/
+          curl -L -o "build.yml" https://raw.githubusercontent.com/tiencv2006/nothingsvn_xiaomi-toolbuild/main/.github/workflows/build.yml
+
+      - name: Step 3: Tải các khối cấu hình patch từ My-Assets
+        run: |
+          cd remote-repo/.github/workflows/
+          curl -L -o matrix_patch.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Matrix-source.txt
+          curl -L -o insert_install_stuff.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/insert_install_stuff.txt
+
+      ### 2. TIẾN HÀNH CHỈNH SỬA FILE (PATCHING) ###
+      - name: Step 4: Sửa required URL (true -> false) & Dọn dẹp Packages lẻ
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          echo "--- 1. Tải nội dung file build.yml gốc từ repo tiencv2006 ---"
-          curl -L -o "$TARGET_FILE" https://raw.githubusercontent.com/tiencv2006/nothingsvn_xiaomi-toolbuild/main/.github/workflows/build.yml
-
-          echo "--- 2. Chỉnh sửa cấu hình required: true thành false ---"
+          # Sửa required
           sed -i '/input_url:/,/required:/s/required: true/required: false/' "$TARGET_FILE"
           
-          echo "--- 3. Xóa các cụm từ /etc/mysql, /etc/php, mysql*, php* xuất hiện riêng lẻ ---"
+          # Xóa mysql, php dư thừa
           sed -i 's|/etc/mysql ||g' "$TARGET_FILE"
           sed -i 's|/etc/php ||g' "$TARGET_FILE"
           sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
 
-          echo "--- 4. Tải khối Matrix chuẩn từ My-Assets ---"
-          # Sử dụng link raw để tải nội dung text gốc
-          curl -L -o matrix_patch.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Matrix-source.txt
-
-          echo "--- 5. Thay thế khối jobs Initialize bằng awk ---"
+      - name: Step 5: Thay thế khối Initialize bằng Matrix-source
+        run: |
+          cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
+          
           awk '
             /^[[:space:]]*Initialize:/ {
               system("cat matrix_patch.txt")
@@ -50,10 +61,27 @@ jobs:
             { print }
           ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
 
-          # Dọn dẹp file tạm
-          rm -f matrix_patch.txt
+      - name: Step 6: Di chuyển bước Install Stuff lên trước Start Notify
+        run: |
+          cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
+          
+          # Chèn khối Install Stuff mới vào trước Start Notify
+          sed -i '/- name: Start Notify/ {
+            r insert_install_stuff.txt
+            N
+          }' "$TARGET_FILE"
 
-      - name: Push Changes
+          # Xóa khối Install Stuff cũ ở phía dưới file
+          sed -i '/- name: Install Stuff/,/sudo pip3 install setuptools/d' "$TARGET_FILE"
+
+      ### 3. DỌN DẸP & ĐẨY LÊN REPO (PUSH) ###
+      - name: Step 7: Dọn dẹp file cấu hình tạm (.txt)
+        run: |
+          cd remote-repo/.github/workflows/
+          rm -f matrix_patch.txt insert_install_stuff.txt
+
+      - name: Step 8: Push Thay Đổi Lên GitHub
         run: |
           cd remote-repo
           git config user.name "github-actions[bot]"
@@ -63,13 +91,15 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Đồng bộ build.yml từ tiencv2006: Thêm Matrix từ nguồn ngoài, sửa URL ROM, dọn dẹp packages"
+            git commit -m "Đồng bộ build.yml: Thêm Matrix, dịch chuyển Install Stuff lên trước Start Notify"
             git push origin HEAD:main
           fi
 
-      - name: KIỂM TRA LẠI
+      - name: Step 9: Kiểm tra lại cấu trúc sau khi sửa
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
-          echo "--- Kiểm tra khối Initialize mới sau khi sửa ---"
+          echo "=== KIỂM TRA KHỐI INITIALIZE & MATRIX ==="
           sed -n '/Initialize:/,/TELEGRAM_CHANNEL_ID:/p' "$TARGET_FILE" || true
+          echo "=== KIỂM TRA THỨ TỰ INSTALL STUFF & NOTIFY ==="
+          grep -E "name: Install Stuff|name: Start Notify" "$TARGET_FILE" || true
