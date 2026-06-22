@@ -124,7 +124,7 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Chuẩn hóa lại khoảng trắng thụt lề đầu dòng cho file Fetch-url.txt (6 khoảng trắng cho - name)
+          # Chuẩn hóa khoảng trắng: - name thụt vào 6 khoảng trắng, run/env thụt 8, nội dung bên trong thụt đều 10
           awk '
             /^[[:space:]]*- name:/ { sub(/^[[:space:]]*/, "      "); print; next }
             /^[[:space:]]*run:/ { sub(/^[[:space:]]*/, "        "); print; next }
@@ -133,7 +133,7 @@ jobs:
             { print }
           ' Fetch-url.txt > fixed_fetch_url.txt
 
-          # Tìm vị trí Start Notify để chèn khối fetch link lên phía trước (lúc này nằm dưới Install Stuff vừa đổi)
+          # Tìm vị trí Start Notify để chèn khối fetch link đều lề lên phía trước
           awk '
             /- name: Start Notify/ {
               system("cat fixed_fetch_url.txt")
@@ -160,6 +160,6 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Đồng bộ build.yml: Cấu hình Matrix, đẩy Install Stuff lên trước và chèn Fetch-url"
+            git commit -m "Đồng bộ build.yml: Cấu hình Matrix, đẩy Install Stuff lên trước và chèn Fetch-url đều lề"
             git push origin HEAD:main
           fi
