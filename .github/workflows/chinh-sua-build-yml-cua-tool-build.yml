@@ -97,16 +97,22 @@ jobs:
           rm -f fixed_install_stuff.txt
 
       - name: Thay thế biến input_url có điều kiện env
+        env:
+          # Khai báo ở đây bằng nháy đơn để ép GitHub giữ nguyên văn chuỗi text
+          KHUON_TIM_KIEM: '${{ inputs.input_url }}'
+          KHUON_THAY_THE: '${{ inputs.input_url || env.AUTO_INPUT_URL }}'
         run: |
           cd remote-repo/.github/workflows/
           
-          # Dùng Python để thay thế chuỗi thô, an toàn 100% không sợ ký tự đặc biệt hay treo step
+          # Gọi biến môi trường thông qua Python để xử lý, an toàn tuyệt đối
           python3 -c '
+          import os
+
           with open("build.yml", "r", encoding="utf-8") as f:
               content = f.read()
           
-          search_str = "${{ inputs.input_url }}"
-          replace_str = "${{ inputs.input_url || env.AUTO_INPUT_URL }}"
+          search_str = os.environ["KHUON_TIM_KIEM"]
+          replace_str = os.environ["KHUON_THAY_THE"]
           
           if search_str in content:
               content = content.replace(search_str, replace_str)
@@ -114,7 +120,7 @@ jobs:
                   f.write(content)
               print("Thay thế biến URL thành công!")
           else:
-              print("Không tìm thấy chuỗi URL cần thay thế hoặc đã được thay trước đó.")
+              print("Không tìm thấy chuỗi URL cần thay thế hoặc đã được sửa trước đó.")
           '
           
       - name: Dọn dẹp file cấu hình tạm (.txt)
