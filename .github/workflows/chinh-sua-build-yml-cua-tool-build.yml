@@ -101,14 +101,12 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Sử dụng mã hóa hex hoặc chuỗi text để tránh trùng lặp vòng lặp
-          awk '
-            {
-              # Thay thế chuỗi văn bản bằng cách định vị chính xác thông qua hàm gsub của awk
-              gsub(/\$\{\{ inputs\.input_url \}\}/, "${{ inputs.input_url || env.AUTO_INPUT_URL }}")
-              print
-            }
-          ' "$TARGET_FILE" > tmp_url.yml && mv tmp_url.yml "$TARGET_FILE"
+          # Xuất chuỗi cần thay thế ra biến môi trường để tránh lỗi ký tự lạ trong sed
+          export SEARCH_STR='${{ inputs.input_url }}'
+          export REPLACE_STR='${{ inputs.input_url || env.AUTO_INPUT_URL }}'
+          
+          # Dùng lệnh thay thế chuỗi literal chuẩn của môi trường Linux
+          sed -i "s|$(echo "$SEARCH_STR" | sed 's/[.[\*^$]/\\&/g')|$(echo "$REPLACE_STR" | sed 's/[.[\*^$]/\\&/g')|g" "$TARGET_FILE"
           
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
