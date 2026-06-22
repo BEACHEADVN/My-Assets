@@ -100,14 +100,12 @@ jobs:
         run: |
           cd remote-repo/.github/workflows/
           
-          # Giải mã chuỗi trực tiếp trong Python bằng Hex để bypass cơ chế quét biến của GitHub Actions
+          # Bản sạch: Bỏ import dư thừa, chạy trực tiếp hàm lõi của Python
           python3 -c '
-          import byteswarning
-
           with open("build.yml", "r", encoding="utf-8") as f:
               content = f.read()
           
-          # Giải mã chuỗi text thô từ mã Hex
+          # Giải mã chuỗi text thô từ mã Hex (Bypass quét biến của GitHub)
           search_str = bytes.fromhex("247b7b20696e707574732e696e7075745f75726c207d7d").decode("utf-8")
           replace_str = bytes.fromhex("247b7b20696e707574732e696e7075745f75726c207c7c20656e762e4155544f5f494e5055545f55524c207d7d").decode("utf-8")
           
