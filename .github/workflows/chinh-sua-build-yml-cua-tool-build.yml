@@ -60,15 +60,25 @@ jobs:
           ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
 
       - name: Di chuyển bước Install Stuff lên trước Start Notify
+      - name: Di chuyển bước Install Stuff lên trước Start Notify
         run: |
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Dùng awk để cắt khối Install Stuff cũ ở dưới và chèn lên trước Start Notify một cách an toàn
+          # Tự động chuẩn hóa thụt lề file insert_install_stuff.txt trước khi chèn
+          # Đảm bảo '- name:' lùi vào 6 khoảng trắng, 'run:' lùi vào 8 khoảng trắng, và các dòng lệnh lùi vào 10 khoảng trắng
           awk '
-            # Nếu gặp dòng Start Notify, chèn nội dung file insert_install_stuff.txt lên trước, rồi mới in dòng Notify
+            /^[[:space:]]*- name:/ { sub(/^[[:space:]]*/, "      "); print; next }
+            /^[[:space:]]*run:/ { sub(/^[[:space:]]*/, "        "); print; next }
+            /^[[:space:]]*/ { sub(/^[[:space:]]*/, "          "); print; next }
+            { print }
+          ' insert_install_stuff.txt > fixed_install_stuff.txt
+
+          # Dùng awk để cắt khối Install Stuff cũ ở dưới và chèn khối đã sửa lề lên trước Start Notify
+          awk '
+            # Nếu gặp dòng Start Notify, chèn nội dung file đã sửa lề lên trước, rồi mới in dòng Notify
             /- name: Start Notify/ {
-              system("cat insert_install_stuff.txt")
+              system("cat fixed_install_stuff.txt")
               print
               next
             }
@@ -90,6 +100,8 @@ jobs:
             { print }
           ' "$TARGET_FILE" > tmp_move.yml && mv tmp_move.yml "$TARGET_FILE"
 
+          # Dọn dẹp file sửa lề tạm
+          rm -f fixed_install_stuff.txt
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
