@@ -99,14 +99,23 @@ jobs:
       - name: Thay thế biến input_url có điều kiện env
         run: |
           cd remote-repo/.github/workflows/
-          TARGET_FILE="build.yml"
           
-          # Xuất chuỗi cần thay thế ra biến môi trường để tránh lỗi ký tự lạ trong sed
-          export SEARCH_STR='${{ inputs.input_url }}'
-          export REPLACE_STR='${{ inputs.input_url || env.AUTO_INPUT_URL }}'
+          # Dùng Python để thay thế chuỗi thô, an toàn 100% không sợ ký tự đặc biệt hay treo step
+          python3 -c '
+          with open("build.yml", "r", encoding="utf-8") as f:
+              content = f.read()
           
-          # Dùng lệnh thay thế chuỗi literal chuẩn của môi trường Linux
-          sed -i "s|$(echo "$SEARCH_STR" | sed 's/[.[\*^$]/\\&/g')|$(echo "$REPLACE_STR" | sed 's/[.[\*^$]/\\&/g')|g" "$TARGET_FILE"
+          search_str = "${{ inputs.input_url }}"
+          replace_str = "${{ inputs.input_url || env.AUTO_INPUT_URL }}"
+          
+          if search_str in content:
+              content = content.replace(search_str, replace_str)
+              with open("build.yml", "w", encoding="utf-8") as f:
+                  f.write(content)
+              print("Thay thế biến URL thành công!")
+          else:
+              print("Không tìm thấy chuỗi URL cần thay thế hoặc đã được thay trước đó.")
+          '
           
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
