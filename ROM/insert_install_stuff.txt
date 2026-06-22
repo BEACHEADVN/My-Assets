@@ -71,7 +71,6 @@
           sudo ln -sf "$(pwd)/android-sdk/build-tools/34.0.0/aapt" /usr/local/bin/aapt
 
 - name: Fetch Latest ROM URL
-        id: fetch_rom
         run: |
           python3 - <<EOF
           import requests
