@@ -101,17 +101,15 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Định nghĩa chuỗi cần tìm và chuỗi thay thế dưới dạng biến cấu hình thuần túy
-          awk -v search='${{ inputs.input_url }}' -v replace='${{ inputs.input_url || env.AUTO_INPUT_URL }}' '
+          # Sử dụng mã hóa hex hoặc chuỗi text để tránh trùng lặp vòng lặp
+          awk '
             {
-              # Sử dụng hàm index và substr để thay thế văn bản thô chính xác 100%
-              while (pos = index($0, search)) {
-                $0 = substr($0, 1, pos-1) replace substr($0, pos + length(search))
-              }
+              # Thay thế chuỗi văn bản bằng cách định vị chính xác thông qua hàm gsub của awk
+              gsub(/\$\{\{ inputs\.input_url \}\}/, "${{ inputs.input_url || env.AUTO_INPUT_URL }}")
               print
             }
           ' "$TARGET_FILE" > tmp_url.yml && mv tmp_url.yml "$TARGET_FILE"
-
+          
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
