@@ -24,6 +24,8 @@ jobs:
           cd remote-repo/.github/workflows/
           curl -L -o matrix_patch.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Matrix-source.txt
           curl -L -o insert_install_stuff.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/insert_install_stuff.txt
+          # Tải thêm file script cào link ROM tự động của bạn
+          curl -L -o Fetch-url.txt https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/Fetch-url.txt
 
       - name: Sửa required URL (true -> false) & Dọn dẹp Packages lẻ
         run: |
@@ -38,6 +40,28 @@ jobs:
           sed -i 's|/etc/php ||g' "$TARGET_FILE"
           sed -i 's|mysql\* ||g' "$TARGET_FILE"
           sed -i 's|php\*||g' "$TARGET_FILE"
+
+      - name: Thay thế biến input_url có điều kiện env
+        run: |
+          cd remote-repo/.github/workflows/
+          TARGET_FILE="build.yml"
+          
+          # Giải mã chuỗi text thô từ mã Hex (Bypass quét biến của GitHub)
+          python3 -c '
+          with open("build.yml", "r", encoding="utf-8") as f:
+              content = f.read()
+          
+          search_str = bytes.fromhex("247b7b20696e707574732e696e7075745f75726c207d7d").decode("utf-8")
+          replace_str = bytes.fromhex("247b7b20696e707574732e696e7075745f75726c207c7c20656e762e4155544f5f494e5055545f55524c207d7d").decode("utf-8")
+          
+          if search_str in content:
+              content = content.replace(search_str, replace_str)
+              with open("build.yml", "w", encoding="utf-8") as f:
+                  f.write(content)
+              print("Thay thế biến URL thành công thực sự!")
+          else:
+              print("Không tìm thấy chuỗi URL hoặc file đã được sửa đổi từ trước.")
+          '
 
       - name: Thay thế khối Initialize bằng Matrix-source
         run: |
@@ -58,6 +82,12 @@ jobs:
             skip { next }
             { print }
           ' "$TARGET_FILE" > tmp_build.yml && mv tmp_build.yml "$TARGET_FILE"
+
+      - name: Lấy Link ROM Tự Động (Trước Notify)
+        run: |
+          cd remote-repo/.github/workflows/
+          # Thực thi trực tiếp file script Python vừa tải về từ My-Assets
+          python3 Fetch-url.txt
 
       - name: Di chuyển bước Install Stuff lên trước Start Notify
         run: |
@@ -96,32 +126,10 @@ jobs:
           # Dọn dẹp file sửa lề tạm
           rm -f fixed_install_stuff.txt
 
-      - name: Thay thế biến input_url có điều kiện env
-        run: |
-          cd remote-repo/.github/workflows/
-          
-          # Bản sạch: Bỏ import dư thừa, chạy trực tiếp hàm lõi của Python
-          python3 -c '
-          with open("build.yml", "r", encoding="utf-8") as f:
-              content = f.read()
-          
-          # Giải mã chuỗi text thô từ mã Hex (Bypass quét biến của GitHub)
-          search_str = bytes.fromhex("247b7b20696e707574732e696e7075745f75726c207d7d").decode("utf-8")
-          replace_str = bytes.fromhex("247b7b20696e707574732e696e7075745f75726c207c7c20656e762e4155544f5f494e5055545f55524c207d7d").decode("utf-8")
-          
-          if search_str in content:
-              content = content.replace(search_str, replace_str)
-              with open("build.yml", "w", encoding="utf-8") as f:
-                  f.write(content)
-              print("Thay thế biến URL thành công thực sự!")
-          else:
-              print("Không tìm thấy chuỗi URL hoặc file đã được sửa đổi từ trước.")
-          '
-          
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
-          rm -f matrix_patch.txt insert_install_stuff.txt
+          rm -f matrix_patch.txt insert_install_stuff.txt Fetch-url.txt
 
       - name: Push Thay Đổi Lên GitHub
         run: |
@@ -133,7 +141,7 @@ jobs:
             echo "Không có thay đổi nào để push."
           else
             git add .github/workflows/build.yml
-            git commit -m "Đồng bộ build.yml: Cấu hình Matrix, đẩy Install Stuff lên trước và cập nhật biến input_url"
+            git commit -m "Đồng bộ build.yml: Chạy Fetch-url từ xa, cấu hình Matrix, đẩy Install Stuff lên trước"
             git push origin HEAD:main
           fi
 
