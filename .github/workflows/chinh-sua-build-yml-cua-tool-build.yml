@@ -44,8 +44,8 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Tìm và thay thế chính xác chuỗi biến URL sang định dạng fallback env
-          sed -i 's|\${{ inputs.input_url }}|\${{ inputs.input_url \|\| env.AUTO_INPUT_URL }}|g' "$TARGET_FILE"
+          # Đã sửa: Loại bỏ dấu \ trước ký tự || để tránh ghi đè sai cú pháp vào file đích
+          sed -i 's|\${{ inputs.input_url }}|\${{ inputs.input_url || env.AUTO_INPUT_URL }}|g' "$TARGET_FILE"
 
       - name: Thay thế khối Initialize bằng Matrix-source
         run: |
