@@ -124,7 +124,10 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Đã sửa: Vì file Fetch-url.txt của bạn đã chuẩn lề, chèn trực tiếp bằng cat luôn cho sạch code
+          # Biến đổi toàn bộ khoảng trắng lạ (NBSP) trong Fetch-url.txt thành khoảng trắng chuẩn (Space)
+          sed -i 's/\xc2\xa0/ /g; s/\xa0/ /g' Fetch-url.txt
+
+          # Tìm vị trí Start Notify để chèn khối fetch link vào
           awk '
             /- name: Start Notify/ {
               system("cat Fetch-url.txt")
@@ -133,7 +136,7 @@ jobs:
             }
             { print }
           ' "$TARGET_FILE" > tmp_fetch.yml && mv tmp_fetch.yml "$TARGET_FILE"
-
+          
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
