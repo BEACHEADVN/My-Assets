@@ -71,3 +71,4 @@
           echo "✅ Zipalign hoạt động bình thường"
           sudo ln -sf "$(pwd)/android-sdk/build-tools/34.0.0/zipalign" /usr/local/bin/zipalign
           sudo ln -sf "$(pwd)/android-sdk/build-tools/34.0.0/aapt" /usr/local/bin/aapt
+
