@@ -95,14 +95,14 @@ jobs:
             { print }
           ' insert_install_stuff.txt > fixed_install_stuff.txt
 
-          # Cắt khối Install Stuff cũ ở dưới và chèn khối mới lên trước Start Notify
+          # Cắt khối Install Stuff cũ ở dưới và chèn khối mới lên trước Start Notify (Chấp nhận mọi khoảng trắng đầu dòng)
           awk '
-            /- name: Start Notify/ {
+            /^[[:space:]]*- name:[[:space:]]*Start Notify/ {
               system("cat fixed_install_stuff.txt")
               print
               next
             }
-            /- name: Install Stuff/ {
+            /^[[:space:]]*- name:[[:space:]]*Install Stuff/ {
               skip = 1
               next
             }
@@ -124,19 +124,19 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Biến đổi toàn bộ khoảng trắng lạ (NBSP) trong Fetch-url.txt thành khoảng trắng chuẩn (Space)
+          # Làm sạch triệt để mọi khoảng trắng NBSP (\xa0) có thể có trong file Fetch-url.txt của bạn
           sed -i 's/\xc2\xa0/ /g; s/\xa0/ /g' Fetch-url.txt
 
-          # Tìm vị trí Start Notify để chèn khối fetch link vào
+          # Chèn Fetch-url.txt chuẩn lề vào trước Start Notify (Chấp nhận mọi khoảng trắng đầu dòng)
           awk '
-            /- name: Start Notify/ {
+            /^[[:space:]]*- name:[[:space:]]*Start Notify/ {
               system("cat Fetch-url.txt")
               print
               next
             }
             { print }
           ' "$TARGET_FILE" > tmp_fetch.yml && mv tmp_fetch.yml "$TARGET_FILE"
-          
+
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
           cd remote-repo/.github/workflows/
