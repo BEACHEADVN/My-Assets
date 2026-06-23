@@ -5,25 +5,54 @@
           from bs4 import BeautifulSoup
           import os
           import re
-          
-          headers = {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-          }
-          
+          import time
+          import random
+
+          # Danh sách User-Agent để luân phiên thay đổi tránh bị phát hiện là bot
+          user_agents = [
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+              "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+          ]
+
           target_device = "myron"
           target_region = "China"
           base_url = "https://hyperosroms.com"
           model_url = f"{base_url}/model/{target_device}"
-          
-          res = requests.get(model_url, headers=headers, timeout=15)
-          if res.status_code != 200:
-              print(f"❌ Không thể truy cập danh sách ROM thiết bị {target_device} vùng {target_region}")
+
+          res = None
+          # Thử đi thử lại tối đa 5 lần nếu bị từ chối kết nối
+          for i in range(5):
+              try:
+                  headers = {
+                      "User-Agent": random.choice(user_agents),
+                      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                      "Accept-Language": "en-US,en;q=0.5",
+                      "Sec-Fetch-Dest": "document",
+                      "Sec-Fetch-Mode": "navigate",
+                      "Sec-Fetch-Site": "none",
+                      "Pragma": "no-cache",
+                      "Cache-Control": "no-cache"
+                  }
+                  print(f"🔄 Đang thử kết nối lần {i+1}...")
+                  res = requests.get(model_url, headers=headers, timeout=20)
+                  if res.status_code == 200:
+                      print("✅ Kết nối thành công!")
+                      break
+              except Exception as e:
+                  print(f"⚠️ Lần {i+1} thất bại: {e}")
+              
+              # Nghỉ một lúc ngẫu nhiên tăng dần trước khi thử lại để tránh bị trảm
+              time.sleep(random.randint(3, 7))
+
+          if not res or res.status_code != 200:
+              print(f"❌ Server chặn hoàn toàn IP của GitHub Actions hoặc đã sập.")
               exit(1)
-          
+
           soup = BeautifulSoup(res.text, 'html.parser')
           rows = soup.find_all('tr')
           sub_page_url = ""
-          
+
           for row in rows:
               cells = row.find_all('td')
               if len(cells) >= 5:
@@ -35,33 +64,45 @@
                       if link_tag and 'href' in link_tag.attrs:
                           sub_page_url = base_url + link_tag['href'] if link_tag['href'].startswith('/') else link_tag['href']
                           break
-          
+
           if not sub_page_url:
               print(f"❌ Không tìm thấy sub-page ROM phù hợp cho {target_device} ({target_region})")
               exit(1)
-          
-          res_sub = requests.get(sub_page_url, headers=headers, timeout=15)
+
+          # Thử lại tương tự với trang con (Sub-page)
+          res_sub = None
+          for i in range(3):
+              try:
+                  res_sub = requests.get(sub_page_url, headers={"User-Agent": random.choice(user_agents)}, timeout=20)
+                  if res_sub.status_code == 200:
+                      break
+              except:
+                  time.sleep(3)
+
+          if not res_sub or res_sub.status_code != 200:
+              print("❌ Thất bại khi truy cập trang chi tiết ROM.")
+              exit(1)
+
           soup_sub = BeautifulSoup(res_sub.text, 'html.parser')
-          
           package_name = ""
           for li in soup_sub.find_all(['li', 'p']):
               text = li.get_text()
               if "Package Name:" in text:
                   package_name = text.split("Package Name:")[-1].strip()
                   break
-          
+
           if not package_name:
               match = re.search(r'([\w-]+\.zip)', res_sub.text)
               if match:
                   package_name = match.group(1)
-          
+
           if not package_name:
               print(f"❌ Không tìm thấy tên gói ZIP hợp lệ cho {target_device}")
               exit(1)
-          
+
           version_code = sub_page_url.split('/')[-1]
           high_speed_url = f"https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/{version_code}/{package_name}"
-          
+
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write(f"AUTO_INPUT_URL={high_speed_url}\n")
               f.write(f"ROM_FILE={package_name}\n")
