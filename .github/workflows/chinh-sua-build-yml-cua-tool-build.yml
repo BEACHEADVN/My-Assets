@@ -124,18 +124,33 @@ jobs:
           cd remote-repo/.github/workflows/
           TARGET_FILE="build.yml"
           
-          # Làm sạch triệt để mọi khoảng trắng NBSP (\xa0) có thể có trong file Fetch-url.txt của bạn
-          sed -i 's/\xc2\xa0/ /g; s/\xa0/ /g' Fetch-url.txt
+          # 1. Lấy chính xác số lượng và loại khoảng trắng (Tab hoặc Space) ở đầu dòng "Start Notify" từ file gốc
+          LE_GOC=$(grep -m 1 "name: Start Notify" "$TARGET_FILE" | sed 's/- name:.*//')
+          
+          # 2. Tạo một file tạm đã được tự động thêm lề khớp hoàn toàn với file gốc
+          echo "${LE_GOC}- name: Lấy Link ROM Tự Động" > fixed_fetch.yml
+          echo "${LE_GOC}  run: |" >> fixed_fetch.yml
+          
+          # Đọc file Fetch-url.txt từ dòng số 3 trở đi (bỏ qua 2 dòng name và run cũ) và bơm lề chuẩn vào
+          tail -n +3 Fetch-url.txt | while IFS= read -r line; do
+              # Loại bỏ lề cũ của file Fetch-url.txt (xóa 10 khoảng trắng ở đầu)
+              CLEAN_LINE=$(echo "$line" | sed 's/^          //')
+              # Thêm lề chuẩn dựa theo file gốc vào trước nội dung code Python
+              echo "${LE_GOC}    $CLEAN_LINE" >> fixed_fetch.yml
+          done
 
-          # Chèn Fetch-url.txt chuẩn lề vào trước Start Notify (Chấp nhận mọi khoảng trắng đầu dòng)
-          awk '
-            /^[[:space:]]*- name:[[:space:]]*Start Notify/ {
-              system("cat Fetch-url.txt")
+          # 3. Tìm vị trí Start Notify để chèn khối file tạm đã chuẩn lề vào trước nó
+          awk -v legoc="$LE_GOC" '
+            $0 ~ legoc "- name:[[:space:]]*Start Notify" {
+              system("cat fixed_fetch.yml")
               print
               next
             }
             { print }
           ' "$TARGET_FILE" > tmp_fetch.yml && mv tmp_fetch.yml "$TARGET_FILE"
+          
+          # Dọn dẹp file tạm
+          rm -f fixed_fetch.yml
 
       - name: Dọn dẹp file cấu hình tạm (.txt)
         run: |
