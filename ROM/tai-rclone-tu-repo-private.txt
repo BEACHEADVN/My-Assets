@@ -7,3 +7,4 @@
                -L "https://api.github.com/repos/BEACHEADVN/PRIVATE_INFORMATION/contents/rclone.conf?ref=main" \
                -o ./rclone.conf
           echo "Đã tải rclone.conf về thư mục gốc thành công."
+
