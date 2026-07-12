@@ -1,15 +1,15 @@
-name: Mod repo
+name: Inject Rclone and Pixeldrain Steps
 
 on:
   workflow_dispatch: # Kích hoạt thủ công bằng nút bấm
     inputs:
       enable_rclone:
-        description: 'Bật chèn step Rclone'
+        description: 'Bật chèn step Rclone (True/False)'
         required: true
         type: boolean
         default: false
       enable_pixeldrain:
-        description: 'Bật chèn step Pixeldrain'
+        description: 'Bật chèn step Pixeldrain (True/False)'
         required: true
         type: boolean
         default: true
@@ -35,23 +35,6 @@ jobs:
           echo "Đang thực hiện Sync Fork từ repository gốc..."
           gh repo sync ${{ github.repository }} --branch main || echo "Sync fork có chút vấn đề hoặc đã trùng khớp, tiếp tục chạy..."
           git pull origin main
-
-      - name: Verify Workflow Files Existence
-        shell: bash
-        run: |
-          echo "=== KIỂM TRA CÁC FILE WORKFLOWS HIỆN TẠI ==="
-          if [ -f .github/workflows/bat-link-tu-tracker.yml ]; then
-            echo "✅ Tìm thấy file: bat-link-tu-tracker.yml"
-          else
-            echo "❌ Không tìm thấy file: bat-link-tu-tracker.yml"
-          fi
-
-          if [ -f .github/workflows/mod-repo.yml ]; then
-            echo "✅ Tìm thấy file: mod-repo.yml"
-          else
-            echo "❌ Không tìm thấy file: mod-repo.yml"
-          fi
-          echo "=========================================="
 
       - name: Inject Rclone Step
         if: ${{ github.event.inputs.enable_rclone == 'true' }}
@@ -178,7 +161,9 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
+          # Chỉ theo dõi và commit đúng 2 file mục tiêu
           git add .github/workflows/build.yml uploadROM.sh
+          
           git commit -m "Automated: Sync steps, update uploadROM.sh and remove custom block exit 1" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
