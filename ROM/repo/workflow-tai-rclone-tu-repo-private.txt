@@ -1,0 +1,83 @@
+name: Inject Rclone Fetch Step
+
+on:
+  workflow_dispatch: # Kích hoạt thủ công bằng nút bấm trên GitHub Actions
+
+jobs:
+  inject-step:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@main
+
+      - name: Download and Inject Step
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # 1. Tải nội dung đoạn step cần chèn từ repo My-Assets
+          curl -s -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3.raw" \
+            -L "https://api.github.com/repos/BEACHEADVN/My-Assets/contents/ROM/repo/tai-rclone-tu-repo-private.txt?ref=main" \
+            -o step_to_inject.txt
+
+          # 2. Chạy Python script để chèn nội dung vào đúng vị trí trong build.yml
+          python3 - << 'EOF'
+          import os
+
+          build_yml_path = ".github/workflows/build.yml"
+          inject_file_path = "step_to_inject.txt"
+
+          if not os.path.exists(build_yml_path):
+              print(f"Error: Không tìm thấy file {build_yml_path}")
+              exit(1)
+
+          # Đọc nội dung đoạn step cần chèn
+          with open(inject_file_path, "r", encoding="utf-8") as f:
+              inject_content = f.read().strip("\n") + "\n"
+
+          # Đọc nội dung file build.yml gốc
+          with open(build_yml_path, "r", encoding="utf-8") as f:
+              lines = f.readlines()
+
+          target_index = -1
+          # Tìm vị trí dòng có chứa "- name: Set up Rclone"
+          for i, line in enumerate(lines):
+              if "- name: Set up Rclone" in line:
+                  target_index = i
+                  break
+
+          if target_index == -1:
+              print("Error: Không tìm thấy step '- name: Set up Rclone' trong build.yml")
+              exit(1)
+
+          # Lấy khoảng trống thụt lề (indentation) của step cũ để căn chỉnh step mới cho chuẩn yml
+          line_target = lines[target_index]
+          indent = len(line_target) - len(line_target.lstrip())
+          
+          # Căn chỉnh lại thụt lề cho nội dung mới tương ứng với cấu trúc file
+          formatted_inject = ""
+          for sub_line in inject_content.splitlines():
+              if sub_line.strip():
+                  # Giữ nguyên cấu trúc thụt lề gốc của file tải về và cộng thêm indent thích hợp
+                  formatted_inject += " " * indent + sub_line.lstrip() + "\n"
+              else:
+                  formatted_inject += "\n"
+
+          # Chèn vào trước step "Set up Rclone"
+          lines.insert(target_index, formatted_inject + "\n")
+
+          # Ghi đè lại vào file build.yml
+          with open(build_yml_path, "w", encoding="utf-8") as f:
+              f.writelines(lines)
+
+          print("Đã chèn thành công nội dung tải rclone vào trước step 'Set up Rclone'")
+          EOF
+
+      - name: Commit and Push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .github/workflows/build.yml
+          git commit -m "Automated: Inject private rclone fetch step before Set up Rclone" || echo "Không có thay đổi nào cần commit"
+          git push origin main
