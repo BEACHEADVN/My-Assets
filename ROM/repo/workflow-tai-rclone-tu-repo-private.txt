@@ -1,13 +1,13 @@
-name: Inject Rclone Fetch Step
+name: Inject Rclone and Pixeldrain Steps
 
 on:
-  workflow_dispatch: # Kích hoạt thủ công bằng nút bấm trên GitHub Actions
+  workflow_dispatch: # Kích hoạt thủ công bằng nút bấm
 
 permissions:
-  contents: write # Cấp quyền ghi vào repository cho GITHUB_TOKEN mặc định
+  contents: write
 
 jobs:
-  inject-step:
+  inject-steps:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,108 +15,162 @@ jobs:
         uses: actions/checkout@main
         with:
           token: ${{ secrets.GH_TOKEN }}
-          fetch-depth: 1 # Tối ưu tốc độ: Chỉ lấy commit mới nhất, bỏ qua toàn bộ lịch sử commit cũ
 
-      - name: Download and Inject Step
+      - name: Inject Rclone Step
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # 1. Tải nội dung đoạn step cần chèn từ repo My-Assets
-          curl -s -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github.v3.raw" \
+          # Tải file từ My-Assets
+          curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3.raw" \
             -L "https://api.github.com/repos/BEACHEADVN/My-Assets/contents/ROM/repo/tai-rclone-tu-repo-private.txt?ref=main" \
-            -o step_to_inject.txt
+            -o rclone.txt
 
-          # 2. Chạy Python script để kiểm tra trùng lặp và xử lý thụt lề chuẩn xác
+          # Dùng Python phân tích cú pháp cấu trúc dòng chuẩn xác
           python3 - << 'EOF'
           import os
-          import sys
-
-          build_yml_path = ".github/workflows/build.yml"
-          inject_file_path = "step_to_inject.txt"
-
-          if not os.path.exists(build_yml_path):
-              print(f"Error: Không tìm thấy file {build_yml_path}")
-              sys.exit(1)
-
-          # Đọc nội dung file build.yml gốc để kiểm tra trước
-          with open(build_yml_path, "r", encoding="utf-8") as f:
-              build_content = f.read()
-
-          # Kiểm tra xem step này đã được chèn vào trước đó chưa
-          if "Fetch Secret rclone.conf to Root Directory" in build_content:
-              print("Warning: Step 'Fetch Secret rclone.conf to Root Directory' đã tồn tại trong build.yml rồi. Bỏ qua không chèn lại nữa!")
-              # Tạo một file tạm để báo cho step sau biết là không cần push
-              with open("skip_push.txt", "w") as f:
-                  f.write("skip")
-              sys.exit(0)
-
-          # Đọc nội dung đoạn step cần chèn
-          with open(inject_file_path, "r", encoding="utf-8") as f:
-              inject_content = f.read()
-
-          # Đọc lại dưới dạng list dòng để xử lý vị trí chèn
-          lines = build_content.splitlines(keepends=True)
-
-          target_index = -1
-          # Tìm vị trí dòng có chứa "- name: Set up Rclone"
-          for i, line in enumerate(lines):
-              if "- name: Set up Rclone" in line:
-                  target_index = i
-                  break
-
-          if target_index == -1:
-              print("Error: Không tìm thấy step '- name: Set up Rclone' trong build.yml")
-              sys.exit(1)
-
-          # Lấy chính xác số lượng khoảng trắng thụt lề của step đích
-          line_target = lines[target_index]
-          indent_size = len(line_target) - len(line_target.lstrip())
-          base_indent = " " * indent_size
+          build_path = ".github/workflows/build.yml"
           
-          formatted_lines = []
-          for sub_line in inject_content.splitlines():
-              stripped = sub_line.strip()
-              if not stripped:
-                  formatted_lines.append("")
-                  continue
+          if os.path.exists(build_path):
+              with open(build_path, "r", encoding="utf-8") as f:
+                  build_lines = f.readlines()
               
-              # Căn chỉnh dựa trên cấu trúc chuẩn của step
-              if stripped.startswith("- name:"):
-                  formatted_lines.append(f"{base_indent}{stripped}")
-              elif stripped.startswith("env:") or stripped.startswith("run:"):
-                  formatted_lines.append(f"{base_indent}  {stripped}")
+              if any("Fetch Secret rclone.conf to Root Directory" in line for line in build_lines):
+                  print("Step Rclone đã tồn tại, bỏ qua.")
+                  exit(0)
+                  
+              target_idx = -1
+              for i, line in enumerate(build_lines):
+                  if "- name: Set up Rclone" in line:
+                      target_idx = i
+                      break
+                      
+              if target_idx != -1:
+                  line_target = build_lines[target_idx]
+                  indent_size = len(line_target) - len(line_target.lstrip())
+                  base_indent = " " * indent_size
+                  
+                  with open("rclone.txt", "r", encoding="utf-8") as f:
+                      rclone_content = f.read()
+                      
+                  formatted_lines = []
+                  for sub_line in rclone_content.splitlines():
+                      stripped = sub_line.strip()
+                      if not stripped:
+                          formatted_lines.append("")
+                          continue
+                      
+                      if stripped.startswith("- name:"):
+                          formatted_lines.append(f"{base_indent}{stripped}")
+                      elif stripped.startswith("env:") or stripped.startswith("run:") or stripped.startswith("id:") or stripped.startswith("shell:") or stripped.startswith("if:"):
+                          formatted_lines.append(f"{base_indent}  {stripped}")
+                      else:
+                          formatted_lines.append(f"{base_indent}    {stripped}")
+                          
+                  rclone_code = "\n".join(formatted_lines) + "\n\n"
+                  build_lines.insert(target_idx, rclone_code)
+                  
+                  with open(build_path, "w", encoding="utf-8") as f:
+                      f.writelines(build_lines)
+                  print("Đã chèn Rclone chuẩn cấu trúc thành công.")
               else:
-                  # Dành cho các dòng lệnh bên trong run: hoặc các key của env:
-                  formatted_lines.append(f"{base_indent}    {stripped}")
-
-          formatted_inject = "\n".join(formatted_lines) + "\n\n"
-
-          # Chèn vào trước step "Set up Rclone"
-          lines.insert(target_index, formatted_inject)
-
-          # Ghi đè lại vào file build.yml
-          with open(build_yml_path, "w", encoding="utf-8") as f:
-              f.writelines(lines)
-
-          print("Đã căn chỉnh thụt lề chuẩn và chèn thành công vào build.yml!")
+                  print("Không tìm thấy step 'Set up Rclone'")
           EOF
 
-      - name: Commit and Push changes
+      - name: Inject Pixeldrain Step
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Nếu file skip_push.txt tồn tại, kết thúc step luôn không push nữa
-          if [ -f skip_push.txt ]; then
-            echo "Không có thay đổi nào cần cập nhật lên repo."
-            exit 0
+          # Tải file từ My-Assets
+          curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3.raw" \
+            -L "https://api.github.com/repos/BEACHEADVN/My-Assets/contents/ROM/repo/upload-pixeldrain.txt?ref=main" \
+            -o pixeldrain.txt
+
+          # Dùng Python phân tích cú pháp cấu trúc dòng chuẩn xác
+          python3 - << 'EOF'
+          import os
+          build_path = ".github/workflows/build.yml"
+          
+          if os.path.exists(build_path):
+              with open(build_path, "r", encoding="utf-8") as f:
+                  build_lines = f.readlines()
+              
+              if any("Split Large File" in line for line in build_lines):
+                  print("Step Pixeldrain đã tồn tại, bỏ qua.")
+                  exit(0)
+                  
+              target_idx = -1
+              for i, line in enumerate(build_lines):
+                  if "- name: Send success notification" in line:
+                      target_idx = i
+                      break
+                      
+              if target_idx != -1:
+                  line_target = build_lines[target_idx]
+                  indent_size = len(line_target) - len(line_target.lstrip())
+                  base_indent = " " * indent_size
+                  
+                  with open("pixeldrain.txt", "r", encoding="utf-8") as f:
+                      pixeldrain_content = f.read()
+                      
+                  formatted_lines = []
+                  for sub_line in pixeldrain_content.splitlines():
+                      stripped = sub_line.strip()
+                      if not stripped:
+                          formatted_lines.append("")
+                          continue
+                      
+                      if stripped.startswith("- name:"):
+                          formatted_lines.append(f"{base_indent}{stripped}")
+                      elif stripped.startswith("env:") or stripped.startswith("run:") or stripped.startswith("id:") or stripped.startswith("shell:") or stripped.startswith("if:"):
+                          formatted_lines.append(f"{base_indent}  {stripped}")
+                      else:
+                          formatted_lines.append(f"{base_indent}    {stripped}")
+                          
+                  pixeldrain_code = "\n".join(formatted_lines) + "\n\n"
+                  build_lines.insert(target_idx, pixeldrain_code)
+                  
+                  with open(build_path, "w", encoding="utf-8") as f:
+                      f.writelines(build_lines)
+                  print("Đã chèn Pixeldrain chuẩn cấu trúc thành công.")
+              else:
+                  print("Không tìm thấy step 'Send success notification'")
+          EOF
+
+      - name: Modify uploadROM.sh Script
+        shell: bash
+        run: |
+          if [ -f ./uploadROM.sh ]; then
+            # Kiểm tra xem file đã được sửa từ trước chưa
+            if grep -q 'ONEDRIVE_REMOTE="nothings-toolbuild"' ./uploadROM.sh; then
+              echo "File uploadROM.sh đã được sửa từ trước, bỏ qua."
+            else
+              echo "Đang sửa file uploadROM.sh..."
+              
+              # 1. Tìm và thay thế giá trị ONEDRIVE_REMOTE
+              sed -i 's/ONEDRIVE_REMOTE=.*/ONEDRIVE_REMOTE="nothings-toolbuild"/g' ./uploadROM.sh
+              
+              # 2. Xóa bỏ hoàn toàn 2 dòng dọn dẹp out và build
+              sed -i '/rm -rf \$work_dir\/out/d' ./uploadROM.sh
+              sed -i '/rm -rf \$work_dir\/build/d' ./uploadROM.sh
+              
+              echo "Sửa script thành công!"
+            fi
+          else
+            echo "Không tìm thấy file uploadROM.sh để sửa!"
+            exit 1
           fi
 
+      - name: Push changes to Repository
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add .github/workflows/build.yml
-          git commit -m "Automated: Inject private rclone fetch step with precise indentation" || echo "Không có thay đổi nào cần commit"
           
-          # Đổi URL sang định dạng sử dụng token để vượt qua lỗi 403
+          # Gộp chung add cả file workflow lẫn file script vào đây để commit 1 lần duy nhất
+          git add .github/workflows/build.yml uploadROM.sh
+          
+          git commit -m "Automated: Sync steps and update uploadROM.sh" || echo "Không có thay đổi để commit"
+          
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
