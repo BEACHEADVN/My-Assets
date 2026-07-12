@@ -1,0 +1,91 @@
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full jq
+
+      - name: Split Large File
+        id: split
+        shell: bash
+        run: |
+          FILE=$(find out -maxdepth 1 -name "*.zip" | head -n1)
+          
+          if [ -z "$FILE" ]; then
+            echo "No ROM zip found!"
+            exit 1
+          fi
+          
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          
+          SIZE=$(stat -c%s "$FILE")
+          LIMIT=$((9 * 1024 * 1024 * 1024))
+          
+          if [ "$SIZE" -gt "$LIMIT" ]; then
+            echo "Splitting ROM..."
+            7z a -t7z -mx=0 -v9g "${FILE}.7z" "$FILE"
+            echo "split=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "split=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload to Pixeldrain
+        id: pd
+        shell: bash
+        env:
+          PD_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
+        run: |
+          FILE="${{ steps.split.outputs.file }}"
+          
+          if [[ "${{ steps.split.outputs.split }}" == "true" ]]; then
+            LINKS=""
+            COUNT=1
+            
+            # Sửa lại tìm file dạng .7z.001 thay vì dấu * bị bọc sai vị trí
+            for PART in "${FILE}.7z".*; do
+              # Kiểm tra nếu không tìm thấy file part nào phù hợp (tránh lỗi vòng lặp trống)
+              [ -e "$PART" ] || continue
+              
+              echo "Uploading $PART"
+              
+              RESPONSE=$(curl -s \
+                -u ":$PD_API_KEY" \
+                -F "file=@${PART}" \
+                https://pixeldrain.com/api/file)
+              
+              ID=$(echo "$RESPONSE" | jq -r '.id')
+              
+              if [[ -z "$ID" || "$ID" == "null" ]]; then
+                echo "Upload failed for $PART. Response:"
+                echo "$RESPONSE"
+                exit 1
+              fi
+              
+              URL="https://pixeldrain.com/u/$ID"
+              
+              if [[ -z "$LINKS" ]]; then
+                LINKS="<a href='$URL'>Part $COUNT</a>"
+              else
+                LINKS="$LINKS | <a href='$URL'>Part $COUNT</a>"
+              fi
+              
+              COUNT=$((COUNT + 1))
+            done
+          else
+            echo "Uploading $FILE"
+            
+            RESPONSE=$(curl -s \
+              -u ":$PD_API_KEY" \
+              -F "file=@${FILE}" \
+              https://pixeldrain.com/api/file)
+            
+            ID=$(echo "$RESPONSE" | jq -r '.id')
+            
+            if [[ -z "$ID" || "$ID" == "null" ]]; then
+              echo "Upload failed. Response:"
+              echo "$RESPONSE"
+              exit 1
+            fi
+            
+            LINKS="<a href='https://pixeldrain.com/u/$ID'>Download</a>"
+          fi
+      
+          echo "links=$LINKS" >> "$GITHUB_OUTPUT"
