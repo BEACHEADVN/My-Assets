@@ -1,9 +1,0 @@
-      - name: Fetch Secret rclone.conf to Root Directory
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          curl -s -H "Authorization: token $GH_TOKEN" \
-               -H "Accept: application/vnd.github.v3.raw" \
-               -L "https://api.github.com/repos/BEACHEADVN/PRIVATE_INFORMATION/contents/rclone.conf?ref=main" \
-               -o ./rclone.conf
-          echo "Đã tải rclone.conf về thư mục gốc thành công."
