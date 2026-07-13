@@ -26,8 +26,8 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
 
-      # Step xử lý kiểm tra và sao chép cấu trúc tài nguyên (Boot & Fonts)
-      - name: Sync Resources (Boot and Fonts)
+      # Step xử lý kiểm tra và sao chép cấu trúc tài nguyên (Boot & Fonts chi tiết)
+      - name: Sync Resources (Boot and Specific Fonts)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -38,7 +38,7 @@ jobs:
           NEED_BOOT=0
           NEED_FONT=0
 
-          # 1. Kiểm tra trạng thái thư mục Boot
+          # 1. Kiểm tra trạng thái thư mục Boot (Nếu rỗng hoặc chỉ có .gitkeep thì tải)
           if [ -d "$BOOT_DIR" ] && [ "$(ls -A $BOOT_DIR 2>/dev/null | wc -l)" -gt 1 ]; then
             echo "✅ Thư mục Boot đã có sẵn dữ liệu."
           else
@@ -47,36 +47,35 @@ jobs:
             NEED_BOOT=1
           fi
 
-          # 2. Kiểm tra trạng thái thư mục Fonts/HyperOS
-          if [ -d "$FONT_DIR" ] && [ "$(ls -A $FONT_DIR 2>/dev/null | wc -l)" -gt 1 ]; then
-            echo "✅ Thư mục Fonts/HyperOS đã có sẵn dữ liệu."
+          # 2. Kiểm tra chính xác sự tồn tại của 3 file font mục tiêu
+          echo "🔍 Kiểm tra các file font trong $FONT_DIR..."
+          if [ -f "$FONT_DIR/Bauhaus.ttf" ] && [ -f "$FONT_DIR/product_fonts.list" ] && [ -f "$FONT_DIR/system_fonts.list" ]; then
+            echo "✅ Đã tìm thấy đầy đủ 3 file font (Bauhaus.ttf, product_fonts.list, system_fonts.list)."
           else
-            echo "⚠️ Thư mục Fonts/HyperOS trống hoặc chưa có. Đánh dấu cần tải..."
+            echo "⚠️ Thiếu một hoặc nhiều file font mục tiêu trong thư mục Fonts. Đánh dấu cần tải bổ sung..."
             mkdir -p "$FONT_DIR"
             NEED_FONT=1
           fi
 
-          # 3. Tiến hành tải nếu một trong hai thư mục bị thiếu dữ liệu
-          if [ "$NEED_BOOT" = "1" ] || [ "$FONT_DIR" = "1" ] || [ ! -d "assets_temp" ]; then
-            if [ "$NEED_BOOT" = "1" ] || [ "$NEED_FONT" = "1" ]; then
-              echo "📥 Đang tải tạm thời repository My-Assets..."
-              git clone --depth 1 https://x-access-token:${GH_TOKEN}@github.com/BEACHEADVN/My-Assets.git assets_temp
-              
-              if [ "$NEED_BOOT" = "1" ]; then
-                echo "🚚 Sao chép file sang Boot..."
-                cp -r assets_temp/ROM/boot/* "$BOOT_DIR/" 2>/dev/null || echo "Thư mục ROM/boot trống."
-              fi
-
-              if [ "$NEED_FONT" = "1" ]; then
-                echo "🚚 Sao chép file sang Fonts/HyperOS..."
-                cp -r assets_temp/ROM/font/* "$FONT_DIR/" 2>/dev/null || echo "Thư mục ROM/font trống."
-              fi
-
-              rm -rf assets_temp
-              echo "SHOULD_PUSH_RESOURCES=1" >> $GITHUB_ENV
+          # 3. Tiến hành tải từ My-Assets nếu cần thiết
+          if [ "$NEED_BOOT" = "1" ] || [ "$NEED_FONT" = "1" ]; then
+            echo "📥 Đang tải tạm thời repository My-Assets..."
+            git clone --depth 1 https://x-access-token:${GH_TOKEN}@github.com/BEACHEADVN/My-Assets.git assets_temp
+            
+            if [ "$NEED_BOOT" = "1" ]; then
+              echo "🚚 Sao chép file sang Boot..."
+              cp -r assets_temp/ROM/boot/* "$BOOT_DIR/" 2>/dev/null || echo "Thư mục ROM/boot rỗng."
             fi
+
+            if [ "$NEED_FONT" = "1" ]; then
+              echo "🚚 Sao chép toàn bộ font từ ROM/font sang Fonts/HyperOS..."
+              cp -r assets_temp/ROM/font/* "$FONT_DIR/" 2>/dev/null || echo "Thư mục ROM/font trống."
+            fi
+
+            rm -rf assets_temp
+            echo "SHOULD_PUSH_RESOURCES=1" >> $GITHUB_ENV
           else
-            echo "✅ Tất cả thư mục tài nguyên đều đầy đủ. Bỏ qua tải từ My-Assets."
+            echo "✅ Tất cả thư mục tài nguyên và file font đều đầy đủ. Bỏ qua tải."
             echo "SHOULD_PUSH_RESOURCES=0" >> $GITHUB_ENV
           fi
 
@@ -205,15 +204,14 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Theo dõi file build và script hệ thống gốc trước
           git add .github/workflows/build.yml uploadROM.sh
           
-          # Nếu có cập nhật tài nguyên mới thì add vào commit luôn
+          # Chỉ tiến hành git add tài nguyên nếu có thay đổi tải về từ My-Assets
           if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, update uploadROM.sh, manage Boot and HyperOS Font configurations" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, update uploadROM.sh, manage Boot and specific Font files" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
