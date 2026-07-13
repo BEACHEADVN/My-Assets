@@ -197,6 +197,39 @@ jobs:
             exit 1
           fi
 
+      - name: Fetch and Inject Font Logic from GitHub
+        shell: bash
+        run: |
+          FONT_SCRIPT="./bin/modfile/UpdateFile/Fonts/update.sh"
+          INJECT_URL="https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/repo/mod-font-update-sh.txt"
+          
+          if [ -f "$FONT_SCRIPT" ]; then
+            # Kiểm tra xem logic này đã được chèn trước đó chưa
+            if grep -q "copy_bauhaus_from_list" "$FONT_SCRIPT"; then
+              echo "✅ Logic xử lý font list đã tồn tại trong update.sh, bỏ qua chèn để tránh trùng lặp."
+            else
+              echo "📥 Đang tải đoạn code chèn từ GitHub..."
+              # Tải nội dung code mod lưu vào file tạm sử dụng link raw
+              curl -sL "$INJECT_URL" > /tmp/font_inject.txt
+              
+              # Kiểm tra xem file tải về có nội dung hợp lệ không
+              if [ -s /tmp/font_inject.txt ]; then
+                echo "📝 Tiến hành chèn code vào ngay trước dòng check deviceTYPE..."
+                
+                # Sử dụng AWK để tìm dòng check gốc và nhét nội dung file tạm lên phía trên
+                awk '/if \[\[ \$deviceTYPE == "China" \]\];then/{system("cat /tmp/font_inject.txt"); print ""}1' "$FONT_SCRIPT" > /tmp/font_out
+                mv /tmp/font_out "$FONT_SCRIPT"
+                
+                chmod +x "$FONT_SCRIPT"
+                echo "✅ Đã chèn và hợp thức hóa file update.sh (Fonts) thành công!"
+              else
+                echo "❌ Tải nội dung từ GitHub thất bại hoặc file trống!"
+              fi
+            fi
+          else
+            echo "⚠️ Không tìm thấy file gốc tại $FONT_SCRIPT để chỉnh sửa."
+          fi
+
       - name: Push changes to Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -204,14 +237,15 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          git add .github/workflows/build.yml uploadROM.sh
+          # Hợp thức hóa file cấu hình workflow, script upload và file script font vừa được chèn code
+          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh
           
           # Chỉ tiến hành git add tài nguyên nếu có thay đổi tải về từ My-Assets
           if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, update uploadROM.sh, manage Boot and specific Font files" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, update uploadROM.sh, inject Font lists, manage Boot and Font files" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
