@@ -1,15 +1,14 @@
-name: Inject Rclone and Pixeldrain Steps
-
+name: Mod repo
 on:
-  workflow_dispatch: # Kích hoạt thủ công bằng nút bấm
+  workflow_dispatch: # Kích hoạt thủ công bằng nút bấm hoặc API dispatch
     inputs:
       enable_rclone:
-        description: 'Bật chèn step Rclone (True/False)'
+        description: 'Bật chèn step Rclone'
         required: true
         type: boolean
         default: false
       enable_pixeldrain:
-        description: 'Bật chèn step Pixeldrain (True/False)'
+        description: 'Bật chèn step Pixeldrain'
         required: true
         type: boolean
         default: true
@@ -27,14 +26,59 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
 
-      # Tự động Sync Fork từ repository gốc về trước khi làm các việc khác
-      - name: Sync Fork from Upstream
+      # Step xử lý kiểm tra và sao chép cấu trúc tài nguyên (Boot & Fonts)
+      - name: Sync Resources (Boot and Fonts)
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: bash
         run: |
-          echo "Đang thực hiện Sync Fork từ repository gốc..."
-          gh repo sync ${{ github.repository }} --branch main || echo "Sync fork có chút vấn đề hoặc đã trùng khớp, tiếp tục chạy..."
-          git pull origin main
+          BOOT_DIR="./bin/modfile/UpdateFile/Boot"
+          FONT_DIR="./bin/modfile/UpdateFile/Fonts/HyperOS"
+          
+          NEED_BOOT=0
+          NEED_FONT=0
+
+          # 1. Kiểm tra trạng thái thư mục Boot
+          if [ -d "$BOOT_DIR" ] && [ "$(ls -A $BOOT_DIR 2>/dev/null | wc -l)" -gt 1 ]; then
+            echo "✅ Thư mục Boot đã có sẵn dữ liệu."
+          else
+            echo "⚠️ Thư mục Boot trống hoặc chưa có. Đánh dấu cần tải..."
+            mkdir -p "$BOOT_DIR"
+            NEED_BOOT=1
+          fi
+
+          # 2. Kiểm tra trạng thái thư mục Fonts/HyperOS
+          if [ -d "$FONT_DIR" ] && [ "$(ls -A $FONT_DIR 2>/dev/null | wc -l)" -gt 1 ]; then
+            echo "✅ Thư mục Fonts/HyperOS đã có sẵn dữ liệu."
+          else
+            echo "⚠️ Thư mục Fonts/HyperOS trống hoặc chưa có. Đánh dấu cần tải..."
+            mkdir -p "$FONT_DIR"
+            NEED_FONT=1
+          fi
+
+          # 3. Tiến hành tải nếu một trong hai thư mục bị thiếu dữ liệu
+          if [ "$NEED_BOOT" = "1" ] || [ "$FONT_DIR" = "1" ] || [ ! -d "assets_temp" ]; then
+            if [ "$NEED_BOOT" = "1" ] || [ "$NEED_FONT" = "1" ]; then
+              echo "📥 Đang tải tạm thời repository My-Assets..."
+              git clone --depth 1 https://x-access-token:${GH_TOKEN}@github.com/BEACHEADVN/My-Assets.git assets_temp
+              
+              if [ "$NEED_BOOT" = "1" ]; then
+                echo "🚚 Sao chép file sang Boot..."
+                cp -r assets_temp/ROM/boot/* "$BOOT_DIR/" 2>/dev/null || echo "Thư mục ROM/boot trống."
+              fi
+
+              if [ "$NEED_FONT" = "1" ]; then
+                echo "🚚 Sao chép file sang Fonts/HyperOS..."
+                cp -r assets_temp/ROM/font/* "$FONT_DIR/" 2>/dev/null || echo "Thư mục ROM/font trống."
+              fi
+
+              rm -rf assets_temp
+              echo "SHOULD_PUSH_RESOURCES=1" >> $GITHUB_ENV
+            fi
+          else
+            echo "✅ Tất cả thư mục tài nguyên đều đầy đủ. Bỏ qua tải từ My-Assets."
+            echo "SHOULD_PUSH_RESOURCES=0" >> $GITHUB_ENV
+          fi
 
       - name: Inject Rclone Step
         if: ${{ github.event.inputs.enable_rclone == 'true' }}
@@ -161,10 +205,15 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Chỉ theo dõi và commit đúng 2 file mục tiêu
+          # Theo dõi file build và script hệ thống gốc trước
           git add .github/workflows/build.yml uploadROM.sh
           
-          git commit -m "Automated: Sync steps, update uploadROM.sh and remove custom block exit 1" || echo "Không có thay đổi để commit"
+          # Nếu có cập nhật tài nguyên mới thì add vào commit luôn
+          if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
+            git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
+          fi
+          
+          git commit -m "Automated: Sync steps, update uploadROM.sh, manage Boot and HyperOS Font configurations" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
