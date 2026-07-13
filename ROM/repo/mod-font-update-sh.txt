@@ -21,3 +21,11 @@ copy_bauhaus_from_list() {
         done < "$list_file"
     fi
 }
+
+# Thực thi lệnh copy danh sách font bắt buộc cho OS3 (áp dụng mọi vùng miền)
+if [[ $rom_os == "OS3" ]] && [[ $androidVer -le "16" ]]; then
+    mods "Force processing Font List for OS3..."
+    copy_bauhaus_from_list "$FONT_SOURCE/system_fonts.list" "$SYS_TARGET" "System"
+    copy_bauhaus_from_list "$FONT_SOURCE/product_fonts.list" "$PROD_TARGET" "Product"
+fi
+# ======================================================================
