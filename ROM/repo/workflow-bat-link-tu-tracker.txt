@@ -8,19 +8,61 @@ jobs:
   forward-trigger:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Original Build Workflow
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Print and Debug API Data
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Lấy link ROM từ payload do tracker bắn sang
           ROM_URL="${{ github.event.client_payload.rom_url }}"
+          CHECK_DUP="${{ github.event.client_payload.check_duplicate }}"
+          TARGET_REPO="${{ github.repository }}"
+          REF_NAME="${{ github.ref_name }}"
           
-          echo "🔗 Nhận link tự động từ Tracker: $ROM_URL"
-          echo "🚀 Đang kích hoạt workflow build gốc..."
-          
-          # Tự gọi chính workflow build.yml gốc bằng API workflow_dispatch
-          curl -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/build.yml/dispatches \
-            -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"input_url\":\"$ROM_URL\",\"builder_name\":\"AutoTracker\",\"builder_id\":\"system\"}}"
+          if [ -z "$ROM_URL" ] || [ "$ROM_URL" = "None" ]; then
+            echo "❌ Link ROM rỗng hoặc không hợp lệ. Bỏ qua."
+            exit 0
+          fi
+
+          echo "🔗 Nhận yêu cầu từ Tracker cho ROM: $ROM_URL"
+          echo "⚙️ Cấu hình kiểm tra trùng: $CHECK_DUP"
+
+          # Nếu tắt kiểm tra trùng (check_duplicate == false), bỏ qua check API và trigger luôn
+          if [ "$CHECK_DUP" = "false" ]; then
+            echo "⚠️ Đã TẮT kiểm tra trùng lặp theo yêu cầu từ Tracker! Tiến hành kích hoạt build ngay..."
+            IS_IN_COMMIT="false"
+            IS_IN_WORKFLOW="false"
+          else
+            echo "📥 Đang tải thông tin mới nhất từ GitHub API để kiểm tra..."
+            
+            COMMITS_JSON=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$TARGET_REPO/commits?per_page=1")
+            RUNS_JSON=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$TARGET_REPO/actions/workflows/build.yml/runs?per_page=1")
+
+            # Đưa dữ liệu thô qua biến môi trường để chạy debug log
+            export COMMITS_RAW="$COMMITS_JSON"
+            export RUNS_RAW="$RUNS_JSON"
+            python3 .github/workflows/print_debug_info.py
+
+            # Thực hiện đối chiếu logic qua các file python
+            IS_IN_COMMIT=$(echo "$COMMITS_JSON" | python3 .github/workflows/check_commit.py "$ROM_URL")
+            IS_IN_WORKFLOW=$(echo "$RUNS_JSON" | python3 .github/workflows/check_workflow.py "$ROM_URL")
+
+            echo "📊 Kết quả đối chiếu thực tế:"
+            echo "   • Trùng khớp trong Commit mới nhất: $IS_IN_COMMIT"
+            echo "   • Trùng khớp trong Run build.yml mới nhất: $IS_IN_WORKFLOW"
+          fi
+
+          if [ "$IS_IN_COMMIT" = "true" ] || [ "$IS_IN_WORKFLOW" = "true" ]; then
+            echo "✅ Hệ thống xác định link ROM này đã được xử lý ở commit mới nhất hoặc đang chạy ở run mới nhất. DỪNG TRIGGER!"
+          else
+            echo "🚀 Tiến hành kích hoạt build.yml..."
+            
+            curl -L \
+              -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/$TARGET_REPO/actions/workflows/build.yml/dispatches" \
+              -d "{\"ref\":\"$REF_NAME\",\"inputs\":{\"input_url\":\"$ROM_URL\",\"builder_name\":\"AutoTracker\",\"builder_id\":\"system\"}}"
+          fi
