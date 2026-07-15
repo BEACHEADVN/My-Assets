@@ -28,35 +28,54 @@ jobs:
           echo "🔗 Nhận yêu cầu từ Tracker cho ROM: $ROM_URL"
           echo "⚙️ Cấu hình kiểm tra trùng: $CHECK_DUP"
 
-          # Nếu tắt kiểm tra trùng (check_duplicate == false), bỏ qua check API và trigger luôn
-          if [ "$CHECK_DUP" = "false" ]; then
-            echo "⚠️ Đã TẮT kiểm tra trùng lặp theo yêu cầu từ Tracker! Tiến hành kích hoạt build ngay..."
-            IS_IN_COMMIT="false"
-            IS_IN_WORKFLOW="false"
-          else
-            echo "📥 Đang tải thông tin mới nhất từ GitHub API để kiểm tra..."
+          SHOULD_BUILD="true"
+          REASON="Link mới hoàn toàn"
+
+          if [ "$CHECK_DUP" != "false" ]; then
+            echo "📥 Đang tải thông tin 1 Commit và 2 Workflow Runs mới nhất..."
             
             COMMITS_JSON=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$TARGET_REPO/commits?per_page=1")
-            RUNS_JSON=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$TARGET_REPO/actions/workflows/build.yml/runs?per_page=1")
+            RUNS_JSON=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$TARGET_REPO/actions/workflows/build.yml/runs?per_page=2")
 
-            # Đưa dữ liệu thô qua biến môi trường để chạy debug log
+            # Gọi file debug để in log trực quan
             export COMMITS_RAW="$COMMITS_JSON"
             export RUNS_RAW="$RUNS_JSON"
             python3 .github/workflows/print_debug_info.py
 
-            # Thực hiện đối chiếu logic qua các file python
+            # BƯỚC 1: Kiểm tra commit mới nhất
             IS_IN_COMMIT=$(echo "$COMMITS_JSON" | python3 .github/workflows/check_commit.py "$ROM_URL")
-            IS_IN_WORKFLOW=$(echo "$RUNS_JSON" | python3 .github/workflows/check_workflow.py "$ROM_URL")
+            echo "📊 Kết quả Bước 1 (Kiểm tra Commit): Trùng khớp = $IS_IN_COMMIT"
 
-            echo "📊 Kết quả đối chiếu thực tế:"
-            echo "   • Trùng khớp trong Commit mới nhất: $IS_IN_COMMIT"
-            echo "   • Trùng khớp trong Run build.yml mới nhất: $IS_IN_WORKFLOW"
+            if [ "$IS_IN_COMMIT" = "true" ]; then
+              echo "⚠️ Link ROM đã trùng với Commit mới nhất! Tiếp tục Bước 2..."
+              
+              # BƯỚC 2: Gọi file Python mới tách để check sâu 2 workflow chạy song song
+              WF_DECISION=$(echo "$RUNS_JSON" | python3 .github/workflows/check_matrix_workflow.py "$ROM_URL")
+              
+              ACTION=$(echo "$WF_DECISION" | cut -d'|' -f1)
+              MSG=$(echo "$WF_DECISION" | cut -d'|' -f2)
+              
+              echo "📊 Kết quả Bước 2: Phân tích luồng matrix: $MSG"
+
+              if [ "$ACTION" = "STOP_SUCCESS" ]; then
+                SHOULD_BUILD="false"
+                REASON="$MSG"
+              else
+                SHOULD_BUILD="true"
+                REASON="$MSG"
+              fi
+            else
+              echo "✅ Commit mới nhất không chứa link này. Đủ điều kiện build luôn!"
+            fi
+          else
+            echo "⚠️ Đã TẮT kiểm tra trùng lặp theo yêu cầu từ Tracker!"
           fi
 
-          if [ "$IS_IN_COMMIT" = "true" ] || [ "$IS_IN_WORKFLOW" = "true" ]; then
-            echo "✅ Hệ thống xác định link ROM này đã được xử lý ở commit mới nhất hoặc đang chạy ở run mới nhất. DỪNG TRIGGER!"
-          else
-            echo "🚀 Tiến hành kích hoạt build.yml..."
+          # ==========================================================
+          # HÀNH ĐỘNG DỰA TRÊN KẾT QUẢ ĐỐI CHIẾU
+          # ==========================================================
+          if [ "$SHOULD_BUILD" = "true" ]; then
+            echo "🚀 [HÀNH ĐỘNG] $REASON. Kích hoạt build.yml..."
             
             curl -L \
               -X POST \
@@ -65,4 +84,6 @@ jobs:
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/repos/$TARGET_REPO/actions/workflows/build.yml/dispatches" \
               -d "{\"ref\":\"$REF_NAME\",\"inputs\":{\"input_url\":\"$ROM_URL\",\"builder_name\":\"AutoTracker\",\"builder_id\":\"system\"}}"
+          else
+            echo "✅ [HÀNH ĐỘNG] DỪNG TRIGGER! Lý do: $REASON"
           fi
