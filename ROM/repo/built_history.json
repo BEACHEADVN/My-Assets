@@ -1,12 +1,4 @@
-{
-  "built_roms": [
-    {
-      "url": "https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.301.0.WPMEUXM/myron_eea_global-ota_full-OS3.0.301.0.WPMEUXM-user-16.0-aa3aa56260.zip",
-      "commit": "bb4fc8d"
-    },
-    {
-      "url": "https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.306.0.WPMCNXM/myron-ota_full-OS3.0.306.0.WPMCNXM-user-16.0-0b34ee6a73.zip",
-      "commit": "bb4fc8d"
-    }
-  ]
-}
+commit: xxxx
+
+url_europe: xxxx
+uêl_china: xxx
