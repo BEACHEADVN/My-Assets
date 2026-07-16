@@ -1,0 +1,81 @@
+      # CẬP NHẬT TRẠNG THÁI DẠNG JSON SANG MY-ASSETS
+      # =======================================================
+      
+      # Trường hợp 1: Hàng chạy THÀNH CÔNG (Success)
+      - name: Update Status to My-Assets (Success)
+        if: success()
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/BEACHEADVN/My-Assets.git my-assets
+          cd my-assets
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          mkdir -p ROM/repo
+          
+          # Ghi file dưới dạng JSON
+          cat <<EOF > ROM/repo/latest-stocktoolbuild.txt
+          {
+            "url": "${{ inputs.input_url }}",
+            "commit": "${{ steps.info.outputs.sha }}",
+            "status": "success"
+          }
+          EOF
+          
+          git add ROM/repo/latest-stocktoolbuild.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Update build status: success (${{ steps.info.outputs.sha }})"
+            git push origin main
+          fi
+
+      # Trường hợp 2: Hàng chạy LỖI (Failure)
+      - name: Update Status to My-Assets (Failure)
+        if: failure()
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/BEACHEADVN/My-Assets.git my-assets
+          cd my-assets
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          mkdir -p ROM/repo
+          
+          # Ghi file dưới dạng JSON
+          cat <<EOF > ROM/repo/latest-stocktoolbuild.txt
+          {
+            "url": "${{ inputs.input_url }}",
+            "commit": "${{ steps.info.outputs.sha }}",
+            "status": "failure"
+          }
+          EOF
+          
+          git add ROM/repo/latest-stocktoolbuild.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Update build status: failure (${{ steps.info.outputs.sha }})"
+            git push origin main
+          fi
+
+      # Trường hợp 3: Hàng BỊ HỦY (Cancelled)
+      - name: Update Status to My-Assets (Cancelled)
+        if: cancelled()
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/BEACHEADVN/My-Assets.git my-assets
+          cd my-assets
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          mkdir -p ROM/repo
+          
+          # Ghi file dưới dạng JSON
+          cat <<EOF > ROM/repo/latest-stocktoolbuild.txt
+          {
+            "url": "${{ inputs.input_url }}",
+            "commit": "${{ steps.info.outputs.sha }}",
+            "status": "cancelled"
+          }
+          EOF
+          
+          git add ROM/repo/latest-stocktoolbuild.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Update build status: cancelled (${{ steps.info.outputs.sha }})"
+            git push origin main
+          fi
+      # =======================================================
