@@ -1,15 +1,15 @@
 {
-  "rom_name": "HyperOS_v1.2_MYRON_OS3.0.306.0.WPMCNXM_30a9f_Official.zip",
+  "rom_name": "HyperOS_v1.2_MYRON_OS3.0.306.0.WPMCNXM_531c6_Official.zip",
   "url": "https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.306.0.WPMCNXM/myron-ota_full-OS3.0.306.0.WPMCNXM-user-16.0-0b34ee6a73.zip",
-  "commit": "f281ed8",
+  "commit": "4bf405b",
   "status": "success",
   "pixeldrain": {
     "is_split": false,
     "files": [
       {
         "part": 1,
-        "id": "6hu5qoL7",
-        "url": "https://pixeldrain.com/u/6hu5qoL7"
+        "id": "THK3bBo3",
+        "url": "https://pixeldrain.com/u/THK3bBo3"
       }
     ]
   }
