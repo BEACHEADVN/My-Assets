@@ -1,15 +1,15 @@
 {
-  "rom_name": "HyperOS_v1.2_MYRONEEAGlobal_OS3.0.301.0.WPMEUXM_e6f3c_Official.zip",
+  "rom_name": "HyperOS_v1.2_MYRONEEAGlobal_OS3.0.301.0.WPMEUXM_99da3_Official.zip",
   "url": "https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.301.0.WPMEUXM/myron_eea_global-ota_full-OS3.0.301.0.WPMEUXM-user-16.0-aa3aa56260.zip",
-  "commit": "f281ed8",
+  "commit": "4bf405b",
   "status": "success",
   "pixeldrain": {
     "is_split": false,
     "files": [
       {
         "part": 1,
-        "id": "bu1b7SwB",
-        "url": "https://pixeldrain.com/u/bu1b7SwB"
+        "id": "69HePvDt",
+        "url": "https://pixeldrain.com/u/69HePvDt"
       }
     ]
   }
