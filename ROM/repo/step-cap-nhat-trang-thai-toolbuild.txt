@@ -1,8 +1,8 @@
       # =======================================================
-      # CẬP NHẬT TRẠNG THÁI DẠNG JSON SANG MY-ASSETS (XỬ LÝ ĐA LUỒNG)
+      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (HỖ TRỢ ĐA LUỒNG & TRÍCH XUẤT)
       # =======================================================
       
-      # Trường hợp 1: Hàng chạy THÀNH CÔNG (Success)
+      # Trường hợp 1: Build THÀNH CÔNG (Success)
       - name: Update Status to My-Assets (Success)
         if: success()
         run: |
@@ -13,7 +13,7 @@
           
           mkdir -p ROM/repo
           
-          # Tự động phát hiện luồng để đặt tên file
+          # Tự động nhận diện luồng dựa trên URL
           FILENAME="latest-stocktoolbuild.txt"
           URL_LOWER=$(echo "${{ inputs.input_url }}" | tr '[:upper:]' '[:lower:]')
           if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
@@ -22,14 +22,19 @@
             FILENAME="latest-stocktoolbuild-europe.txt"
           fi
           
-          # Ghi JSON vào file tương ứng
-          cat <<EOF > "ROM/repo/$FILENAME"
-          {
-            "url": "${{ inputs.input_url }}",
-            "commit": "${{ steps.info.outputs.sha }}",
-            "status": "success"
-          }
-          EOF
+          # Đọc chuỗi JSON Pixeldrain từ bước trước và lấy trạng thái split
+          PD_FILES='${{ steps.pd.outputs.pixeldrain_files }}'
+          IS_SPLIT=${{ steps.split.outputs.split }}
+          
+          # Tạo JSON đầy đủ thông tin bằng công cụ jq
+          jq -n \
+            --arg rn "${{ steps.split.outputs.rom_name }}" \
+            --arg url "${{ inputs.input_url }}" \
+            --arg commit "${{ steps.info.outputs.sha }}" \
+            --arg status "success" \
+            --argjson split "$IS_SPLIT" \
+            --argjson files "$PD_FILES" \
+            '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: $split, files: $files}}' > "ROM/repo/$FILENAME"
           
           git add "ROM/repo/$FILENAME"
           if ! git diff --cached --quiet; then
@@ -37,7 +42,7 @@
             git push origin main
           fi
 
-      # Trường hợp 2: Hàng chạy LỖI (Failure)
+      # Trường hợp 2: Build THẤT BẠI (Failure)
       - name: Update Status to My-Assets (Failure)
         if: failure()
         run: |
@@ -48,7 +53,7 @@
           
           mkdir -p ROM/repo
           
-          # Tự động phát hiện luồng để đặt tên file
+          # Tự động nhận diện luồng
           FILENAME="latest-stocktoolbuild.txt"
           URL_LOWER=$(echo "${{ inputs.input_url }}" | tr '[:upper:]' '[:lower:]')
           if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
@@ -57,14 +62,15 @@
             FILENAME="latest-stocktoolbuild-europe.txt"
           fi
           
-          # Ghi JSON vào file tương ứng
-          cat <<EOF > "ROM/repo/$FILENAME"
-          {
-            "url": "${{ inputs.input_url }}",
-            "commit": "${{ steps.info.outputs.sha }}",
-            "status": "failure"
-          }
-          EOF
+          ROM_NAME=$(find out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
+          
+          # Tạo JSON trạng thái lỗi (để mảng files trống)
+          jq -n \
+            --arg rn "$ROM_NAME" \
+            --arg url "${{ inputs.input_url }}" \
+            --arg commit "${{ steps.info.outputs.sha }}" \
+            --arg status "failure" \
+            '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: false, files: []}}' > "ROM/repo/$FILENAME"
           
           git add "ROM/repo/$FILENAME"
           if ! git diff --cached --quiet; then
@@ -72,7 +78,7 @@
             git push origin main
           fi
 
-      # Trường hợp 3: Hàng BỊ HỦY (Cancelled)
+      # Trường hợp 3: Build BỊ HỦY (Cancelled)
       - name: Update Status to My-Assets (Cancelled)
         if: cancelled()
         run: |
@@ -83,7 +89,7 @@
           
           mkdir -p ROM/repo
           
-          # Tự động phát hiện luồng để đặt tên file
+          # Tự động nhận diện luồng
           FILENAME="latest-stocktoolbuild.txt"
           URL_LOWER=$(echo "${{ inputs.input_url }}" | tr '[:upper:]' '[:lower:]')
           if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
@@ -92,14 +98,15 @@
             FILENAME="latest-stocktoolbuild-europe.txt"
           fi
           
-          # Ghi JSON vào file tương ứng
-          cat <<EOF > "ROM/repo/$FILENAME"
-          {
-            "url": "${{ inputs.input_url }}",
-            "commit": "${{ steps.info.outputs.sha }}",
-            "status": "cancelled"
-          }
-          EOF
+          ROM_NAME=$(find out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
+          
+          # Tạo JSON trạng thái bị hủy
+          jq -n \
+            --arg rn "$ROM_NAME" \
+            --arg url "${{ inputs.input_url }}" \
+            --arg commit "${{ steps.info.outputs.sha }}" \
+            --arg status "cancelled" \
+            '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: false, files: []}}' > "ROM/repo/$FILENAME"
           
           git add "ROM/repo/$FILENAME"
           if ! git diff --cached --quiet; then
