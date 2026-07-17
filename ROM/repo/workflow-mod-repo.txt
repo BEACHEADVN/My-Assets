@@ -335,6 +335,20 @@ jobs:
                   print("⚠️ Không tìm thấy dòng 'sudo bash setup.sh' trong build.yml.")
           EOF
 
+      - name: Modify packROM.sh Script
+        shell: bash
+        run: |
+          if [ -f ./packROM.sh ]; then
+            echo "📝 Đang tiến hành xóa flag --sparse trong packROM.sh..."
+            
+            # Xóa cụm từ '--sparse ' (bao gồm cả khoảng trắng đi kèm nếu có) trong lệnh mkfs.erofs
+            sed -i 's/mkfs.erofs \(.*\)--sparse \(.*\)/mkfs.erofs \1\2/g' ./packROM.sh
+            
+            echo "✅ Đã loại bỏ flag hoàn tất!"
+          else
+            echo "⚠️ Không tìm thấy file packROM.sh để chỉnh sửa."
+          fi
+
       - name: Push changes to Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
