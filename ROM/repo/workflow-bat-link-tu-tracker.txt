@@ -3,17 +3,6 @@ name: bat link tu Tracker
 on:
   repository_dispatch:
     types: [trigger_from_tracker]
-  workflow_dispatch:
-    inputs:
-      rom_url:
-        description: 'Nhập link ROM cần build thủ công'
-        required: true
-        type: string
-      force_build:
-        description: 'Ép build (Bỏ qua kiểm tra trùng lặp)'
-        required: true
-        type: boolean
-        default: false
 
 jobs:
   forward-trigger:
@@ -33,12 +22,8 @@ jobs:
       - name: Detect Region and Print Info
         id: detect
         run: |
-          # Hỗ trợ lấy link từ cả hai nguồn: Tracker gửi về hoặc nhập tay bằng nút bấm
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ROM_URL="${{ github.event.inputs.rom_url }}"
-          else
-            ROM_URL="${{ github.event.client_payload.rom_url }}"
-          fi
+          ROM_URL="${{ github.event.client_payload.rom_url }}"
+          FORCE_BUILD="${{ github.event.client_payload.force_build }}"
           
           # Chuyển URL về chữ thường để so khớp
           URL_LOWER=$(echo "$ROM_URL" | tr '[:upper:]' '[:lower:]')
@@ -53,7 +38,6 @@ jobs:
             FILENAME="latest-stocktoolbuild-europe.txt"
           fi
           
-          echo "rom_url=$ROM_URL" >> $GITHUB_OUTPUT
           echo "region=$REGION" >> $GITHUB_OUTPUT
           echo "filename=$FILENAME" >> $GITHUB_OUTPUT
           
@@ -61,35 +45,29 @@ jobs:
           echo "🔗 Link ROM đã nhận: $ROM_URL"
           echo "🌍 Vùng nhận diện: $REGION"
           echo "📂 File trạng thái tương ứng: $FILENAME"
+          echo "⚡ Ép build (force_build): $FORCE_BUILD"
           echo "📌 Commit hiện tại: ${{ steps.info.outputs.sha }}"
           echo "========================================="
 
-      # Kiểm tra trùng lặp link ROM, mã Commit và Trạng thái build
+      # Kiểm tra trùng lặp link ROM, mã Commit và Trạng thái build (Bỏ qua nếu FORCE_BUILD = true)
       - name: Check Duplicate ROM Link, Commit and Status
         id: check_duplicate
         run: |
-          ROM_URL="${{ steps.detect.outputs.rom_url }}"
+          ROM_URL="${{ github.event.client_payload.rom_url }}"
+          FORCE_BUILD="${{ github.event.client_payload.force_build }}"
           FILENAME="${{ steps.detect.outputs.filename }}"
           CURRENT_COMMIT="${{ steps.info.outputs.sha }}"
           
-          # Xác định trạng thái ép build từ payload của Tracker hoặc giao diện nút bấm thủ công
-          FORCE_BUILD="false"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            FORCE_BUILD="${{ github.event.inputs.force_build }}"
-          elif [ "${{ github.event.client_payload.force_build }}" = "true" ]; then
-            FORCE_BUILD="true"
-          fi
-
-          # Nếu kích hoạt ép build, bỏ qua toàn bộ logic check trùng
+          # 1. Nếu force_build là true, bỏ qua hoàn toàn việc check và tiến hành build luôn
           if [ "$FORCE_BUILD" = "true" ]; then
-            echo "🔥 Chế độ ÉP BUILD đang bật! Bỏ qua kiểm tra trùng lặp."
+            echo "🚨 PHÁT HIỆN YÊU CẦU ÉP BUILD (FORCE_BUILD = TRUE)!"
+            echo "⏭️ Bỏ qua kiểm tra trùng lặp trên My-Assets. Tiến hành kích hoạt build ngay lập tức."
             echo "skip_trigger=false" >> $GITHUB_OUTPUT
             exit 0
           fi
           
-          # Clone repository My-Assets về để kiểm tra file JSON lưu trạng thái trước đó
+          # 2. Ngược lại, tiến hành check như bình thường
           git clone https://github.com/BEACHEADVN/My-Assets.git my-assets
-          
           FILE_PATH="my-assets/ROM/repo/$FILENAME"
           
           if [ -f "$FILE_PATH" ]; then
@@ -99,20 +77,20 @@ jobs:
             LAST_STATUS=$(jq -r '.status' "$FILE_PATH" || echo "")
             
             echo "🔍 DỮ LIỆU ĐÃ LƯU TRÊN MY-ASSETS:"
-            echo "    - Link ROM cũ: $LAST_URL"
-            echo "    - Commit cũ:   $LAST_COMMIT"
-            echo "    - Trạng thái:  $LAST_STATUS"
+            echo "   - Link ROM cũ: $LAST_URL"
+            echo "   - Commit cũ:   $LAST_COMMIT"
+            echo "   - Trạng thái:  $LAST_STATUS"
             echo "----------------------------------------"
             echo "📝 THÔNG TIN HIỆN TẠI:"
-            echo "    - Link ROM mới: $ROM_URL"
-            echo "    - Commit mới:   $CURRENT_COMMIT"
+            echo "   - Link ROM mới: $ROM_URL"
+            echo "   - Commit mới:   $CURRENT_COMMIT"
             echo "----------------------------------------"
             
-            # 1. Kiểm tra trùng Link ROM
+            # Kiểm tra trùng Link ROM
             if [ "$ROM_URL" = "$LAST_URL" ]; then
-              # 2. Kiểm tra trùng Commit
+              # Kiểm tra trùng Commit
               if [ "$CURRENT_COMMIT" = "$LAST_COMMIT" ]; then
-                # 3. Kiểm tra trạng thái build cũ
+                # Kiểm tra trạng thái build cũ
                 if [ "$LAST_STATUS" = "success" ]; then
                   echo "⚠️ Trùng cả Link ROM, Commit và bản cũ đã BUILD THÀNH CÔNG!"
                   echo "⏭️ Không cần build lại. Bỏ qua luồng build này."
@@ -139,7 +117,7 @@ jobs:
       - name: Trigger Original Build Workflow
         if: steps.check_duplicate.outputs.skip_trigger != 'true'
         run: |
-          ROM_URL="${{ steps.detect.outputs.rom_url }}"
+          ROM_URL="${{ github.event.client_payload.rom_url }}"
           REGION="${{ steps.detect.outputs.region }}"
           
           echo "🚀 Đang kích hoạt workflow build gốc cho vùng: $REGION..."
