@@ -1,3 +1,4 @@
+      # THAY ĐỔI CHUẨN NÉN ROM
       - name: Install 7z and Modify uploadROM.sh
         shell: bash
         run: |
