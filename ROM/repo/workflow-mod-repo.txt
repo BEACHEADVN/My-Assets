@@ -343,7 +343,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           # Hợp thức hóa các file đã chỉnh sửa trực tiếp trong repo
-          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh
+          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh
           
           # Chỉ tiến hành git add tài nguyên nếu có thay đổi tải về từ My-Assets
           if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
