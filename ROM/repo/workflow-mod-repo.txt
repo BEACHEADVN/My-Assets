@@ -79,6 +79,76 @@ jobs:
             echo "SHOULD_PUSH_RESOURCES=0" >> $GITHUB_ENV
           fi
 
+      - name: Inject Strong ROM Compression Step
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3.raw" \
+            -L "https://api.github.com/repos/BEACHEADVN/My-Assets/contents/ROM/repo/step-nen-rom-manh-nhat.txt?ref=main" \
+            -o compression_step.txt
+
+          python3 - << 'EOF'
+          import os
+          build_path = ".github/workflows/build.yml"
+          if os.path.exists(build_path):
+              with open(build_path, "r", encoding="utf-8") as f:
+                  build_lines = f.readlines()
+              
+              # Kiểm tra xem step nén hoặc từ khóa đặc biệt đã tồn tại chưa
+              if any("THAY ĐỔI CHUẨN NÉN ROM" in line or "step-nen-rom-manh-nhat" in line or "Optimize ROM Compression" in line for line in build_lines):
+                  print("Step Nén ROM mạnh nhất (hoặc nhãn THAY ĐỔI CHUẨN NÉN ROM) đã tồn tại, bỏ qua.")
+                  exit(0)
+                  
+              target_idx = -1
+              # Tìm step "Set up Rclone" để chuẩn bị chèn vào ngay phía sau
+              for i, line in enumerate(build_lines):
+                  if "- name: Set up Rclone" in line:
+                      target_idx = i
+                      break
+              
+              if target_idx != -1:
+                  line_target = build_lines[target_idx]
+                  indent_size = len(line_target) - len(line_target.lstrip())
+                  base_indent = " " * indent_size
+                  
+                  # Xác định điểm kết thúc của step "Set up Rclone" để tìm vị trí chèn thích hợp
+                  insert_idx = target_idx + 1
+                  while insert_idx < len(build_lines):
+                      next_line = build_lines[insert_idx].strip()
+                      # Gặp step tiếp theo có cùng lề thụt dòng
+                      if build_lines[insert_idx].startswith(base_indent + "-"):
+                          break
+                      # Hoặc hết lề của khối steps
+                      if next_line and not build_lines[insert_idx].startswith(base_indent):
+                          break
+                      insert_idx += 1
+                  
+                  with open("compression_step.txt", "r", encoding="utf-8") as f:
+                      content = f.read()
+                      
+                  formatted_lines = []
+                  for sub_line in content.splitlines():
+                      stripped = sub_line.strip()
+                      if not stripped:
+                          formatted_lines.append("")
+                          continue
+                      if stripped.startswith("- name:"):
+                          formatted_lines.append(f"{base_indent}{stripped}")
+                      elif stripped.startswith("env:") or stripped.startswith("run:") or stripped.startswith("id:") or stripped.startswith("shell:") or stripped.startswith("if:"):
+                          formatted_lines.append(f"{base_indent}  {stripped}")
+                      else:
+                          formatted_lines.append(f"{base_indent}    {stripped}")
+                          
+                  code_to_inject = "\n".join(formatted_lines) + "\n\n"
+                  build_lines.insert(insert_idx, code_to_inject)
+                  
+                  with open(build_path, "w", encoding="utf-8") as f:
+                      f.writelines(build_lines)
+                  print("Đã chèn step Nén ROM mạnh nhất vào sau bước Set up Rclone thành công.")
+              else:
+                  print("⚠️ Không tìm thấy step '- name: Set up Rclone' trong file build.yml để chèn sau nó.")
+          EOF
+
       - name: Inject Rclone Step
         if: ${{ github.event.inputs.enable_rclone == 'true' }}
         env:
@@ -182,7 +252,7 @@ jobs:
             echo "Đang xử lý chỉnh sửa file uploadROM.sh..."
             
             # 1. Tìm và thay thế giá trị ONEDRIVE_REMOTE
-            sed -i 's/ONEDRIVE_REMOTE=.*/ONEDRIVE_REMOTE="nothings-toolbuild"/g' ./uploadROM.sh
+            sed -i 's/ONEDROTE_REMOTE=.*/ONEDRIVE_REMOTE="nothings-toolbuild"/g' ./uploadROM.sh
             
             # 2. Xóa bỏ hoàn toàn 2 dòng dọn dẹp out và build
             sed -i '/rm -rf \$work_dir\/out/d' ./uploadROM.sh
