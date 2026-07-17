@@ -5,20 +5,20 @@
           # 1. Cài đặt p7zip-full để có chuẩn nén mạnh nhất
           echo "📥 Installing p7zip-full..."
           sudo apt-get update && sudo apt-get install -y p7zip-full
-          
+
           # 2. Tiến hành chỉnh sửa file uploadROM.sh
           TARGET_FILE="uploadROM.sh"
           if [ -f "$TARGET_FILE" ]; then
-            echo "📝 Modifying $TARGET_FILE to use 7z compression..."
-            
-            # Thay thế lệnh zip thành 7z nén mạnh nhất (-mx=9)
-            sed -i 's/zip -r ${os_type}_${device_code}_${base_rom_code}.zip .\/\*/7z a -mx=9 ${os_type}_${device_code}_${base_rom_code}.7z .\/\*/g' "$TARGET_FILE"
-            
-            # Đổi toàn bộ đuôi mở rộng từ .zip sang .7z ở các dòng còn lại
-            sed -i 's/\.zip/\.7z/g' "$TARGET_FILE"
-            
-            echo "✅ Modification completed successfully."
+          echo "📝 Modifying $TARGET_FILE to use 7z compression..."
+
+          # Thay thế lệnh zip thành 7z nén mạnh nhất (-mx=9)
+          sed -i 's/zip -r ${os_type}_${device_code}_${base_rom_code}.zip .\/\*/7z a -mx=9 ${os_type}_${device_code}_${base_rom_code}.7z .\/\*/g' "$TARGET_FILE"
+
+          # Đổi toàn bộ đuôi mở rộng từ .zip sang .7z ở các dòng còn lại
+          sed -i 's/\.zip/\.7z/g' "$TARGET_FILE"
+
+          echo "✅ Modification completed successfully."
           else
-            echo "❌ $TARGET_FILE not found!"
-            exit 1
+          echo "❌ $TARGET_FILE not found!"
+          exit 1
           fi
