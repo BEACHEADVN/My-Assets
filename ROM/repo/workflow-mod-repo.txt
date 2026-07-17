@@ -79,76 +79,6 @@ jobs:
             echo "SHOULD_PUSH_RESOURCES=0" >> $GITHUB_ENV
           fi
 
-      - name: Inject Strong ROM Compression Step
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3.raw" \
-            -L "https://api.github.com/repos/BEACHEADVN/My-Assets/contents/ROM/repo/step-nen-rom-manh-nhat.txt?ref=main" \
-            -o compression_step.txt
-
-          python3 - << 'EOF'
-          import os
-          build_path = ".github/workflows/build.yml"
-          if os.path.exists(build_path):
-              with open(build_path, "r", encoding="utf-8") as f:
-                  build_lines = f.readlines()
-              
-              # Kiểm tra xem step nén hoặc từ khóa đặc biệt đã tồn tại chưa
-              if any("THAY ĐỔI CHUẨN NÉN ROM" in line or "step-nen-rom-manh-nhat" in line or "Optimize ROM Compression" in line for line in build_lines):
-                  print("Step Nén ROM mạnh nhất (hoặc nhãn THAY ĐỔI CHUẨN NÉN ROM) đã tồn tại, bỏ qua.")
-                  exit(0)
-                  
-              target_idx = -1
-              # Tìm step "Set up Rclone" để chuẩn bị chèn vào ngay phía sau
-              for i, line in enumerate(build_lines):
-                  if "- name: Set up Rclone" in line:
-                      target_idx = i
-                      break
-              
-              if target_idx != -1:
-                  line_target = build_lines[target_idx]
-                  indent_size = len(line_target) - len(line_target.lstrip())
-                  base_indent = " " * indent_size
-                  
-                  # Xác định điểm kết thúc của step "Set up Rclone" để tìm vị trí chèn thích hợp
-                  insert_idx = target_idx + 1
-                  while insert_idx < len(build_lines):
-                      next_line = build_lines[insert_idx].strip()
-                      # Gặp step tiếp theo có cùng lề thụt dòng
-                      if build_lines[insert_idx].startswith(base_indent + "-"):
-                          break
-                      # Hoặc hết lề của khối steps
-                      if next_line and not build_lines[insert_idx].startswith(base_indent):
-                          break
-                      insert_idx += 1
-                  
-                  with open("compression_step.txt", "r", encoding="utf-8") as f:
-                      content = f.read()
-                      
-                  formatted_lines = []
-                  for sub_line in content.splitlines():
-                      stripped = sub_line.strip()
-                      if not stripped:
-                          formatted_lines.append("")
-                          continue
-                      if stripped.startswith("- name:"):
-                          formatted_lines.append(f"{base_indent}{stripped}")
-                      elif stripped.startswith("env:") or stripped.startswith("run:") or stripped.startswith("id:") or stripped.startswith("shell:") or stripped.startswith("if:"):
-                          formatted_lines.append(f"{base_indent}  {stripped}")
-                      else:
-                          formatted_lines.append(f"{base_indent}    {stripped}")
-                          
-                  code_to_inject = "\n".join(formatted_lines) + "\n\n"
-                  build_lines.insert(insert_idx, code_to_inject)
-                  
-                  with open(build_path, "w", encoding="utf-8") as f:
-                      f.writelines(build_lines)
-                  print("Đã chèn step Nén ROM mạnh nhất vào sau bước Set up Rclone thành công.")
-              else:
-                  print("⚠️ Không tìm thấy step '- name: Set up Rclone' trong file build.yml để chèn sau nó.")
-          EOF
-
       - name: Inject Rclone Step
         if: ${{ github.event.inputs.enable_rclone == 'true' }}
         env:
@@ -261,6 +191,15 @@ jobs:
             # 3. Sử dụng Perl một dòng để xóa đúng 2 dòng 'exit 1' trong khối MIUI
             perl -0777 -pi -e 's/(if\s+\[\[\s+\$rom_os\s+==\s+"MIUI"\s+\]\];\s+then.*?upload\s+"Error uploading file to OneDrive: \$FILENAME"\s*\n\s*)exit 1(\s*\n\s*}\s*\n\s*else.*?upload\s+"Error uploading file to OneDrive: \$FILENAME"\s*\n\s*)exit 1/\1\2/sg' ./uploadROM.sh
             
+            # 4. KIỂM TRA VÀ THÊM CỤM THAY ĐỔI CHUẨN NÉN ROM (Tránh chèn trùng)
+            if grep -q "THAY ĐỔI CHUẨN NÉN ROM" ./uploadROM.sh; then
+              echo "✅ Cấu hình THAY ĐỔI CHUẨN NÉN ROM đã tồn tại trong uploadROM.sh, bỏ qua!"
+            else
+              echo "📝 Tiến hành chèn tối ưu nén ROM vào uploadROM.sh..."
+              sed -i 's|#!/bin/bash|#!/bin/bash\n\n# THAY ĐỔI CHUẨN NÉN ROM\nexport GZIP="-9"\nexport ZSTD_CLEVEL=19|g' ./uploadROM.sh
+              echo "✅ Đã cấu hình chuẩn nén ROM tối ưu thành công!"
+            fi
+            
             echo "Sửa script hoàn tất!"
           else
             echo "Không tìm thấy file uploadROM.sh để sửa!"
@@ -279,14 +218,11 @@ jobs:
               echo "✅ Logic xử lý font list đã tồn tại trong update.sh, bỏ qua chèn để tránh trùng lặp."
             else
               echo "📥 Đang tải đoạn code chèn từ GitHub..."
-              # Tải nội dung code mod lưu vào file tạm sử dụng link raw
               curl -sL "$INJECT_URL" > /tmp/font_inject.txt
               
               # Kiểm tra xem file tải về có nội dung hợp lệ không
               if [ -s /tmp/font_inject.txt ]; then
                 echo "📝 Tiến hành chèn code vào ngay trước dòng check deviceTYPE..."
-                
-                # Sử dụng AWK để tìm dòng check gốc và nhét nội dung file tạm lên phía trên
                 awk '/if \[\[ \$deviceTYPE == "China" \]\];then/{system("cat /tmp/font_inject.txt"); print ""}1' "$FONT_SCRIPT" > /tmp/font_out
                 mv /tmp/font_out "$FONT_SCRIPT"
                 
@@ -329,19 +265,15 @@ jobs:
                       break
                       
               if target_idx != -1:
-                  # Xác định khoảng thụt đầu dòng (indentation) để format tự động khớp chuẩn YAML
                   line_target = build_lines[target_idx]
                   indent_size = len(line_target) - len(line_target.lstrip())
                   base_indent = " " * indent_size
                   
-                  # Tính toán vị trí chèn phía sau step hiện tại
                   insert_idx = target_idx + 1
                   while insert_idx < len(build_lines):
                       next_line = build_lines[insert_idx].strip()
-                      # Nếu gặp một step mới bắt đầu bằng dấu gạch ngang ở cùng cấp độ thụt lề
                       if build_lines[insert_idx].startswith(base_indent + "-"):
                           break
-                      # Hoặc nếu hết khối jobs/steps (lùi hẳn lề về phía trái)
                       if next_line and not build_lines[insert_idx].startswith(base_indent):
                           break
                       insert_idx += 1
@@ -379,7 +311,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Hợp thức hóa file cấu hình workflow, script upload và file script font vừa được chèn code
+          # Hợp thức hóa các file đã chỉnh sửa trực tiếp trong repo
           git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh
           
           # Chỉ tiến hành git add tài nguyên nếu có thay đổi tải về từ My-Assets
@@ -387,7 +319,7 @@ jobs:
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, update uploadROM.sh, inject Font lists, manage Boot and Font files" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, update uploadROM.sh (with compression parameters), inject Font lists, manage Boot and Font files" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
