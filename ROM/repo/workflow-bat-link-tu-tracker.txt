@@ -3,87 +3,157 @@ name: bat link tu Tracker
 on:
   repository_dispatch:
     types: [trigger_from_tracker]
+  workflow_dispatch:
+    inputs:
+      rom_url:
+        description: 'Nhập link ROM cần build thủ công'
+        required: true
+        type: string
+      force_build:
+        description: 'Ép build (Bỏ qua kiểm tra trùng lặp)'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   forward-trigger:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Print and Debug API Data
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      # Lấy mã commit ngắn mới nhất của repo hiện tại
+      - name: Get Latest Commit SHA
+        id: info
         run: |
-          ROM_URL="${{ github.event.client_payload.rom_url }}"
-          CHECK_DUP="${{ github.event.client_payload.check_duplicate }}"
-          TARGET_REPO="${{ github.repository }}"
-          REF_NAME="${{ github.ref_name }}"
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          echo "sha=$SHA_SHORT" >> $GITHUB_OUTPUT
+
+      # Nhận diện vùng ROM và in thông tin ra log
+      - name: Detect Region and Print Info
+        id: detect
+        run: |
+          # Hỗ trợ lấy link từ cả hai nguồn: Tracker gửi về hoặc nhập tay bằng nút bấm
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ROM_URL="${{ github.event.inputs.rom_url }}"
+          else
+            ROM_URL="${{ github.event.client_payload.rom_url }}"
+          fi
           
-          if [ -z "$ROM_URL" ] || [ "$ROM_URL" = "None" ]; then
-            echo "❌ Link ROM rỗng hoặc không hợp lệ. Bỏ qua."
+          # Chuyển URL về chữ thường để so khớp
+          URL_LOWER=$(echo "$ROM_URL" | tr '[:upper:]' '[:lower:]')
+          REGION="Unknown/Global"
+          FILENAME="latest-stocktoolbuild.txt"
+          
+          if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
+            REGION="China"
+            FILENAME="latest-stocktoolbuild-china.txt"
+          elif [[ "$URL_LOWER" == *"eea"* || "$URL_LOWER" == *"eu"* || "$URL_LOWER" == *"europe"* ]]; then
+            REGION="Europe (EEA)"
+            FILENAME="latest-stocktoolbuild-europe.txt"
+          fi
+          
+          echo "rom_url=$ROM_URL" >> $GITHUB_OUTPUT
+          echo "region=$REGION" >> $GITHUB_OUTPUT
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          
+          echo "========================================="
+          echo "🔗 Link ROM đã nhận: $ROM_URL"
+          echo "🌍 Vùng nhận diện: $REGION"
+          echo "📂 File trạng thái tương ứng: $FILENAME"
+          echo "📌 Commit hiện tại: ${{ steps.info.outputs.sha }}"
+          echo "========================================="
+
+      # Kiểm tra trùng lặp link ROM, mã Commit và Trạng thái build
+      - name: Check Duplicate ROM Link, Commit and Status
+        id: check_duplicate
+        run: |
+          ROM_URL="${{ steps.detect.outputs.rom_url }}"
+          FILENAME="${{ steps.detect.outputs.filename }}"
+          CURRENT_COMMIT="${{ steps.info.outputs.sha }}"
+          
+          # Xác định trạng thái ép build từ payload của Tracker hoặc giao diện nút bấm thủ công
+          FORCE_BUILD="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FORCE_BUILD="${{ github.event.inputs.force_build }}"
+          elif [ "${{ github.event.client_payload.force_build }}" = "true" ]; then
+            FORCE_BUILD="true"
+          fi
+
+          # Nếu kích hoạt ép build, bỏ qua toàn bộ logic check trùng
+          if [ "$FORCE_BUILD" = "true" ]; then
+            echo "🔥 Chế độ ÉP BUILD đang bật! Bỏ qua kiểm tra trùng lặp."
+            echo "skip_trigger=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-
-          echo "🔗 Nhận yêu cầu từ Tracker cho ROM: $ROM_URL"
-          echo "⚙️ Cấu hình kiểm tra trùng: $CHECK_DUP"
-
-          SHOULD_BUILD="true"
-          REASON="Link mới hoàn toàn"
-
-          if [ "$CHECK_DUP" != "false" ]; then
-            echo "📥 Đang tải thông tin 1 Commit và 2 Workflow Runs mới nhất..."
+          
+          # Clone repository My-Assets về để kiểm tra file JSON lưu trạng thái trước đó
+          git clone https://github.com/BEACHEADVN/My-Assets.git my-assets
+          
+          FILE_PATH="my-assets/ROM/repo/$FILENAME"
+          
+          if [ -f "$FILE_PATH" ]; then
+            # Trích xuất URL, Commit và Status đã lưu bằng jq
+            LAST_URL=$(jq -r '.url' "$FILE_PATH" || echo "")
+            LAST_COMMIT=$(jq -r '.commit' "$FILE_PATH" || echo "")
+            LAST_STATUS=$(jq -r '.status' "$FILE_PATH" || echo "")
             
-            COMMITS_JSON=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$TARGET_REPO/commits?per_page=1")
-            RUNS_JSON=$(curl -s -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$TARGET_REPO/actions/workflows/build.yml/runs?per_page=2")
-
-            # Gọi file debug để in log trực quan
-            export COMMITS_RAW="$COMMITS_JSON"
-            export RUNS_RAW="$RUNS_JSON"
-            python3 .github/workflows/print_debug_info.py
-
-            # BƯỚC 1: Kiểm tra commit mới nhất
-            IS_IN_COMMIT=$(echo "$COMMITS_JSON" | python3 .github/workflows/check_commit.py "$ROM_URL")
-            echo "📊 Kết quả Bước 1 (Kiểm tra Commit): Trùng khớp = $IS_IN_COMMIT"
-
-            if [ "$IS_IN_COMMIT" = "true" ]; then
-              echo "⚠️ Link ROM đã trùng với Commit mới nhất! Tiếp tục Bước 2..."
-              
-              # BƯỚC 2: Gọi file Python mới tách để check sâu 2 workflow chạy song song
-              WF_DECISION=$(echo "$RUNS_JSON" | python3 .github/workflows/check_matrix_workflow.py "$ROM_URL")
-              
-              ACTION=$(echo "$WF_DECISION" | cut -d'|' -f1)
-              MSG=$(echo "$WF_DECISION" | cut -d'|' -f2)
-              
-              echo "📊 Kết quả Bước 2: Phân tích luồng matrix: $MSG"
-
-              if [ "$ACTION" = "STOP_SUCCESS" ]; then
-                SHOULD_BUILD="false"
-                REASON="$MSG"
+            echo "🔍 DỮ LIỆU ĐÃ LƯU TRÊN MY-ASSETS:"
+            echo "    - Link ROM cũ: $LAST_URL"
+            echo "    - Commit cũ:   $LAST_COMMIT"
+            echo "    - Trạng thái:  $LAST_STATUS"
+            echo "----------------------------------------"
+            echo "📝 THÔNG TIN HIỆN TẠI:"
+            echo "    - Link ROM mới: $ROM_URL"
+            echo "    - Commit mới:   $CURRENT_COMMIT"
+            echo "----------------------------------------"
+            
+            # 1. Kiểm tra trùng Link ROM
+            if [ "$ROM_URL" = "$LAST_URL" ]; then
+              # 2. Kiểm tra trùng Commit
+              if [ "$CURRENT_COMMIT" = "$LAST_COMMIT" ]; then
+                # 3. Kiểm tra trạng thái build cũ
+                if [ "$LAST_STATUS" = "success" ]; then
+                  echo "⚠️ Trùng cả Link ROM, Commit và bản cũ đã BUILD THÀNH CÔNG!"
+                  echo "⏭️ Không cần build lại. Bỏ qua luồng build này."
+                  echo "skip_trigger=true" >> $GITHUB_OUTPUT
+                else
+                  echo "⚡ Trùng Link ROM & Commit nhưng bản build trước đó THẤT BẠI hoặc BỊ HỦY ($LAST_STATUS)."
+                  echo "🚀 Sẽ tiến hành build lại bản này để sửa lỗi!"
+                  echo "skip_trigger=false" >> $GITHUB_OUTPUT
+                fi
               else
-                SHOULD_BUILD="true"
-                REASON="$MSG"
+                echo "⚡ Trùng Link ROM nhưng phát hiện mã nguồn Commit thay đổi ($LAST_COMMIT ➔ $CURRENT_COMMIT)."
+                echo "🚀 Sẽ tiến hành build lại bản ROM này với mã nguồn mới!"
+                echo "skip_trigger=false" >> $GITHUB_OUTPUT
               fi
             else
-              echo "✅ Commit mới nhất không chứa link này. Đủ điều kiện build luôn!"
+              echo "✅ Link ROM mới hoàn toàn. Sẽ tiến hành build!"
+              echo "skip_trigger=false" >> $GITHUB_OUTPUT
             fi
           else
-            echo "⚠️ Đã TẮT kiểm tra trùng lặp theo yêu cầu từ Tracker!"
+            echo "ℹ️ Chưa tồn tại file lưu trạng thái $FILENAME. Sẽ tiến hành build bản mới!"
+            echo "skip_trigger=false" >> $GITHUB_OUTPUT
           fi
 
-          # ==========================================================
-          # HÀNH ĐỘNG DỰA TRÊN KẾT QUẢ ĐỐI CHIẾU
-          # ==========================================================
-          if [ "$SHOULD_BUILD" = "true" ]; then
-            echo "🚀 [HÀNH ĐỘNG] $REASON. Kích hoạt build.yml..."
-            
-            curl -L \
-              -X POST \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/$TARGET_REPO/actions/workflows/build.yml/dispatches" \
-              -d "{\"ref\":\"$REF_NAME\",\"inputs\":{\"input_url\":\"$ROM_URL\",\"builder_name\":\"AutoTracker\",\"builder_id\":\"system\"}}"
-          else
-            echo "✅ [HÀNH ĐỘNG] DỪNG TRIGGER! Lý do: $REASON"
-          fi
+      - name: Trigger Original Build Workflow
+        if: steps.check_duplicate.outputs.skip_trigger != 'true'
+        run: |
+          ROM_URL="${{ steps.detect.outputs.rom_url }}"
+          REGION="${{ steps.detect.outputs.region }}"
+          
+          echo "🚀 Đang kích hoạt workflow build gốc cho vùng: $REGION..."
+          
+          # Tự gọi chính workflow build.yml gốc bằng API workflow_dispatch
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/build.yml/dispatches \
+            -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"input_url\":\"$ROM_URL\",\"builder_name\":\"AutoTracker ($REGION)\",\"builder_id\":\"system\"}}"
+
+      - name: Skip Build Notification
+        if: steps.check_duplicate.outputs.skip_trigger == 'true'
+        run: |
+          echo "⏭️ Luồng build này được bỏ qua an toàn vì bản build trước đó đã hoàn thành thành công."
