@@ -230,6 +230,78 @@ jobs:
             echo "⚠️ Không tìm thấy file gốc tại $FONT_SCRIPT để chỉnh sửa."
           fi
 
+      - name: Inject Update Toolbuild Status Step
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Dùng link raw của GitHub để tải nội dung step cần chèn
+          curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3.raw" \
+            -L "https://api.github.com/repos/BEACHEADVN/My-Assets/contents/ROM/repo/step-cap-nhat-trang-thai-toolbuild.txt?ref=main" \
+            -o status_step.txt
+
+          python3 - << 'EOF'
+          import os
+          build_path = ".github/workflows/build.yml"
+          if os.path.exists(build_path):
+              with open(build_path, "r", encoding="utf-8") as f:
+                  build_lines = f.readlines()
+              
+              # Kiểm tra file đã chèn chưa bằng cụm từ chỉ định
+              if any("Update Status to My-Assets" in line for line in build_lines):
+                  print("Step Update Toolbuild Status đã tồn tại, bỏ qua.")
+                  exit(0)
+                  
+              target_idx = -1
+              # Duyệt tìm step đích để chèn vào ngay phía sau
+              for i, line in enumerate(build_lines):
+                  if "- name: Upload to Pixeldrain" in line:
+                      target_idx = i
+                      break
+                      
+              if target_idx != -1:
+                  # Xác định khoảng thụt đầu dòng (indentation) để format tự động khớp chuẩn YAML
+                  line_target = build_lines[target_idx]
+                  indent_size = len(line_target) - len(line_target.lstrip())
+                  base_indent = " " * indent_size
+                  
+                  # Tính toán vị trí chèn phía sau step hiện tại
+                  insert_idx = target_idx + 1
+                  while insert_idx < len(build_lines):
+                      next_line = build_lines[insert_idx].strip()
+                      # Nếu gặp một step mới bắt đầu bằng dấu gạch ngang ở cùng cấp độ thụt lề
+                      if build_lines[insert_idx].startswith(base_indent + "-"):
+                          break
+                      # Hoặc nếu hết khối jobs/steps (lùi hẳn lề về phía trái)
+                      if next_line and not build_lines[insert_idx].startswith(base_indent):
+                          break
+                      insert_idx += 1
+
+                  with open("status_step.txt", "r", encoding="utf-8") as f:
+                      status_content = f.read()
+                      
+                  formatted_lines = []
+                  for sub_line in status_content.splitlines():
+                      stripped = sub_line.strip()
+                      if not stripped:
+                          formatted_lines.append("")
+                          continue
+                      if stripped.startswith("- name:"):
+                          formatted_lines.append(f"{base_indent}{stripped}")
+                      elif stripped.startswith("env:") or stripped.startswith("run:") or stripped.startswith("id:") or stripped.startswith("shell:") or stripped.startswith("if:"):
+                          formatted_lines.append(f"{base_indent}  {stripped}")
+                      else:
+                          formatted_lines.append(f"{base_indent}    {stripped}")
+                          
+                  status_code = "\n".join(formatted_lines) + "\n\n"
+                  build_lines.insert(insert_idx, status_code)
+                  
+                  with open(build_path, "w", encoding="utf-8") as f:
+                      f.writelines(build_lines)
+                  print("Đã chèn step Cập nhật trạng thái Toolbuild chuẩn cấu trúc thành công.")
+              else:
+                  print("⚠️ Không tìm thấy step '- name: Upload to Pixeldrain' trong file build.yml.")
+          EOF
+
       - name: Push changes to Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
