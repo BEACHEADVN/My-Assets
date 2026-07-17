@@ -295,6 +295,76 @@ jobs:
               else:
                   print("⚠️ Không tìm thấy step '- name: Upload to Pixeldrain' trong file build.yml.")
           EOF
+
+      # Step chèn cài đặt p7zip-full và jq vào cuối phần cài đặt công cụ
+      - name: Inject Packages into build.yml
+        run: |
+          python3 - << 'EOF'
+          import os
+          build_path = ".github/workflows/build.yml"
+          if os.path.exists(build_path):
+              with open(build_path, "r", encoding="utf-8") as f:
+                  lines = f.readlines()
+              
+              target_idx = -1
+              # Tìm vị trí bắt đầu của step cấu hình công cụ cần can thiệp
+              for i, line in enumerate(lines):
+                  if "- name: Install tools and send start notification" in line:
+                      target_idx = i
+                      break
+              
+              if target_idx != -1:
+                  # Kiểm tra xem gói đã được cấu hình chèn chưa để tránh lặp lệnh
+                  already_exists = False
+                  for j in range(target_idx, len(lines)):
+                      # Nếu chạm sang step tiếp theo thì dừng kiểm tra
+                      if j > target_idx and lines[j].strip().startswith("- name:"):
+                          break
+                      if "p7zip-full" in lines[j] and "jq" in lines[j]:
+                          already_exists = True
+                          break
+                  
+                  if already_exists:
+                      print("✅ Gói p7zip-full và jq đã có sẵn trong step cài đặt, bỏ qua.")
+                  else:
+                      print("📝 Đang tiến hành chèn câu lệnh cài đặt package...")
+                      # Tìm vị trí khối run: của step này để chèn vào cuối khối
+                      run_idx = -1
+                      for j in range(target_idx, len(lines)):
+                        if lines[j].strip().startswith("- name:"):
+                            # Chạm sang step khác thì dừng
+                            if j != target_idx:
+                                break
+                        if "run:" in lines[j]:
+                            run_idx = j
+                            break
+                      
+                      if run_idx != -1:
+                          # Tìm điểm kết thúc của chuỗi lệnh thực thi nhiều dòng (|)
+                          insert_line_idx = -1
+                          # Tính toán mức độ thụt dòng thụt lề chuẩn để đồng bộ cú pháp yaml
+                          indent_size = len(lines[run_idx]) - len(lines[run_idx].lstrip())
+                          step_indent = " " * (indent_size + 2)
+                          
+                          for k in range(run_idx + 1, len(lines)):
+                              # Tìm điểm dừng của khối lệnh khi thấy bắt đầu của một step mới hoặc giảm cấp thụt dòng
+                              if lines[k].strip().startswith("- name:") or (lines[k].strip() and len(lines[k]) - len(lines[k].lstrip()) < indent_size):
+                                  insert_line_idx = k
+                                  break
+                          
+                          if insert_line_idx == -1:
+                              insert_line_idx = len(lines)
+                          
+                          # Chèn dòng cài đặt thư viện vào cuối khối chạy
+                          lines.insert(insert_line_idx, f"{step_indent}sudo apt-get install -y p7zip-full jq\n")
+                          
+                          with open(build_path, "w", encoding="utf-8") as f:
+                              f.writelines(lines)
+                          print("✅ Đã chèn thành công lệnh cài đặt p7zip-full và jq vào build.yml!")
+              else:
+                  print("⚠️ Không tìm thấy step 'Install tools and send start notification' trong build.yml.")
+          EOF
+
       - name: Push changes to Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -310,7 +380,7 @@ jobs:
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, update uploadROM.sh (with compression parameters), inject Font lists, manage Boot and Font files" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, update uploadROM.sh (with compression parameters), inject Font lists, manage Boot and Font files, and install essential utilities" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
