@@ -1,8 +1,8 @@
 # =======================================================
-      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (TỐI ƯU & AN TOÀN)
+      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (SỬA LỖI JQ)
       # =======================================================
       - name: Update Status to My-Assets
-        if: always() # Luôn luôn chạy dù thành công, thất bại hay bị hủy
+        if: always()
         run: |
           git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/BEACHEADVN/My-Assets.git my-assets
           cd my-assets
@@ -21,39 +21,43 @@
           fi
           
           # 2. Xác định trạng thái hiện tại của Job
-          JOB_STATUS="${{ job.status }}" # Trả về 'success', 'failure', hoặc 'cancelled'
+          JOB_STATUS="${{ job.status }}"
           
-          # 3. Lấy ROM_NAME an toàn (Sửa lỗi "No such file or directory")
+          # 3. Lấy ROM_NAME an toàn
           ROM_NAME="Unknown"
-          if [[ "$JOB_STATUS" == "success" ]]; then
-            ROM_NAME="${{ steps.split.outputs.rom_name }}"
-          elif [ -d "../out" ]; then
+          if [ -d "../out" ]; then
             ROM_NAME=$(find ../out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
           fi
-          : "${ROM_NAME:=Unknown}" # Dự phòng nếu biến rỗng
+          : "${ROM_NAME:=Unknown}"
           
-          # 4. Thiết lập dữ liệu Pixeldrain tùy theo trạng thái
+          # 4. Xử lý dữ liệu đầu ra an toàn cho jq (Dùng --arg thay vì --argjson cho chuỗi tự do)
+          IS_SPLIT="false"
+          PD_LINKS=""
+          
           if [[ "$JOB_STATUS" == "success" ]]; then
-            IS_SPLIT=${{ steps.split.outputs.split }}
-            PD_FILES='${{ steps.pd.outputs.pixeldrain_files }}'
-          else
-            IS_SPLIT="false"
-            PD_FILES="[]"
+            IS_SPLIT="${{ steps.split.outputs.split }}"
+            # Đổi sang lấy biến 'links' từ step pd của bạn
+            PD_LINKS='${{ steps.pd.outputs.links }}'
           fi
           
-          # 5. Tạo JSON đầy đủ bằng jq
+          # 5. Tạo JSON đầy đủ bằng jq (Dùng --arg cho $links để không bị crash chuỗi)
           jq -n \
             --arg rn "$ROM_NAME" \
             --arg url "${{ inputs.input_url }}" \
-            --arg commit "${{ steps.info.outputs.sha }}" \
+            --arg commit "${{ github.sha }}" \
             --arg status "$JOB_STATUS" \
             --argjson split "$IS_SPLIT" \
-            --argjson files "$PD_FILES" \
-            '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: $split, files: $files}}' > "ROM/repo/$FILENAME"
+            --arg links "$PD_LINKS" \
+            '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: $split, links: $links}}' > "ROM/repo/$FILENAME"
           
-          # 6. Commit và Push nếu có thay đổi
+          # 6. Commit và đẩy lên với vòng lặp Rebase chống trùng matrix
           git add "ROM/repo/$FILENAME"
           if ! git diff --cached --quiet; then
-            git commit -m "Update build status: $JOB_STATUS (${{ steps.info.outputs.sha }} - $FILENAME)"
-            git push origin main
+            git commit -m "Update build status: $JOB_STATUS (${{ github.sha }} - $FILENAME)"
+            
+            for i in {1..5}; do
+              git pull --rebase origin main && git push origin main && break
+              echo "Tranh chấp luồng push, đang thử lại sau 3 giây..."
+              sleep 3
+            done
           fi
