@@ -1,4 +1,4 @@
-      # =======================================================
+# =======================================================
       # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (HỖ TRỢ ĐA LUỒNG & TRÍCH XUẤT)
       # =======================================================
       
@@ -62,7 +62,8 @@
             FILENAME="latest-stocktoolbuild-europe.txt"
           fi
           
-          ROM_NAME=$(find out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
+          # Sửa thành ../out để trỏ chính xác ra thư mục cha bên ngoài
+          ROM_NAME=$(find ../out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
           
           # Tạo JSON trạng thái lỗi (để mảng files trống)
           jq -n \
@@ -98,7 +99,8 @@
             FILENAME="latest-stocktoolbuild-europe.txt"
           fi
           
-          ROM_NAME=$(find out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
+          # Sửa thành ../out để trỏ chính xác ra thư mục cha bên ngoài
+          ROM_NAME=$(find ../out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
           
           # Tạo JSON trạng thái bị hủy
           jq -n \
@@ -113,4 +115,3 @@
             git commit -m "Update build status: cancelled (${{ steps.info.outputs.sha }} - $FILENAME)"
             git push origin main
           fi
-      # =======================================================
