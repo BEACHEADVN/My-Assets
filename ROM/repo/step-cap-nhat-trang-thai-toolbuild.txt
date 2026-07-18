@@ -1,10 +1,8 @@
 # =======================================================
-      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (HỖ TRỢ ĐA LUỒNG & TRÍCH XUẤT)
+      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (TỐI ƯU & AN TOÀN)
       # =======================================================
-      
-      # Trường hợp 1: Build THÀNH CÔNG (Success)
-      - name: Update Status to My-Assets (Success)
-        if: success()
+      - name: Update Status to My-Assets
+        if: always() # Luôn luôn chạy dù thành công, thất bại hay bị hủy
         run: |
           git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/BEACHEADVN/My-Assets.git my-assets
           cd my-assets
@@ -13,7 +11,7 @@
           
           mkdir -p ROM/repo
           
-          # Tự động nhận diện luồng dựa trên URL
+          # 1. Tự động nhận diện luồng dựa trên URL
           FILENAME="latest-stocktoolbuild.txt"
           URL_LOWER=$(echo "${{ inputs.input_url }}" | tr '[:upper:]' '[:lower:]')
           if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
@@ -22,96 +20,40 @@
             FILENAME="latest-stocktoolbuild-europe.txt"
           fi
           
-          # Đọc chuỗi JSON Pixeldrain từ bước trước và lấy trạng thái split
-          PD_FILES='${{ steps.pd.outputs.pixeldrain_files }}'
-          IS_SPLIT=${{ steps.split.outputs.split }}
+          # 2. Xác định trạng thái hiện tại của Job
+          JOB_STATUS="${{ job.status }}" # Trả về 'success', 'failure', hoặc 'cancelled'
           
-          # Tạo JSON đầy đủ thông tin bằng công cụ jq
+          # 3. Lấy ROM_NAME an toàn (Sửa lỗi "No such file or directory")
+          ROM_NAME="Unknown"
+          if [[ "$JOB_STATUS" == "success" ]]; then
+            ROM_NAME="${{ steps.split.outputs.rom_name }}"
+          elif [ -d "../out" ]; then
+            ROM_NAME=$(find ../out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
+          fi
+          : "${ROM_NAME:=Unknown}" # Dự phòng nếu biến rỗng
+          
+          # 4. Thiết lập dữ liệu Pixeldrain tùy theo trạng thái
+          if [[ "$JOB_STATUS" == "success" ]]; then
+            IS_SPLIT=${{ steps.split.outputs.split }}
+            PD_FILES='${{ steps.pd.outputs.pixeldrain_files }}'
+          else
+            IS_SPLIT="false"
+            PD_FILES="[]"
+          fi
+          
+          # 5. Tạo JSON đầy đủ bằng jq
           jq -n \
-            --arg rn "${{ steps.split.outputs.rom_name }}" \
+            --arg rn "$ROM_NAME" \
             --arg url "${{ inputs.input_url }}" \
             --arg commit "${{ steps.info.outputs.sha }}" \
-            --arg status "success" \
+            --arg status "$JOB_STATUS" \
             --argjson split "$IS_SPLIT" \
             --argjson files "$PD_FILES" \
             '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: $split, files: $files}}' > "ROM/repo/$FILENAME"
           
+          # 6. Commit và Push nếu có thay đổi
           git add "ROM/repo/$FILENAME"
           if ! git diff --cached --quiet; then
-            git commit -m "Update build status: success (${{ steps.info.outputs.sha }} - $FILENAME)"
-            git push origin main
-          fi
-
-      # Trường hợp 2: Build THẤT BẠI (Failure)
-      - name: Update Status to My-Assets (Failure)
-        if: failure()
-        run: |
-          git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/BEACHEADVN/My-Assets.git my-assets
-          cd my-assets
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          mkdir -p ROM/repo
-          
-          # Tự động nhận diện luồng
-          FILENAME="latest-stocktoolbuild.txt"
-          URL_LOWER=$(echo "${{ inputs.input_url }}" | tr '[:upper:]' '[:lower:]')
-          if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
-            FILENAME="latest-stocktoolbuild-china.txt"
-          elif [[ "$URL_LOWER" == *"eea"* || "$URL_LOWER" == *"eu"* || "$URL_LOWER" == *"europe"* ]]; then
-            FILENAME="latest-stocktoolbuild-europe.txt"
-          fi
-          
-          # Sửa thành ../out để trỏ chính xác ra thư mục cha bên ngoài
-          ROM_NAME=$(find ../out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
-          
-          # Tạo JSON trạng thái lỗi (để mảng files trống)
-          jq -n \
-            --arg rn "$ROM_NAME" \
-            --arg url "${{ inputs.input_url }}" \
-            --arg commit "${{ steps.info.outputs.sha }}" \
-            --arg status "failure" \
-            '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: false, files: []}}' > "ROM/repo/$FILENAME"
-          
-          git add "ROM/repo/$FILENAME"
-          if ! git diff --cached --quiet; then
-            git commit -m "Update build status: failure (${{ steps.info.outputs.sha }} - $FILENAME)"
-            git push origin main
-          fi
-
-      # Trường hợp 3: Build BỊ HỦY (Cancelled)
-      - name: Update Status to My-Assets (Cancelled)
-        if: cancelled()
-        run: |
-          git clone https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/BEACHEADVN/My-Assets.git my-assets
-          cd my-assets
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          mkdir -p ROM/repo
-          
-          # Tự động nhận diện luồng
-          FILENAME="latest-stocktoolbuild.txt"
-          URL_LOWER=$(echo "${{ inputs.input_url }}" | tr '[:upper:]' '[:lower:]')
-          if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
-            FILENAME="latest-stocktoolbuild-china.txt"
-          elif [[ "$URL_LOWER" == *"eea"* || "$URL_LOWER" == *"eu"* || "$URL_LOWER" == *"europe"* ]]; then
-            FILENAME="latest-stocktoolbuild-europe.txt"
-          fi
-          
-          # Sửa thành ../out để trỏ chính xác ra thư mục cha bên ngoài
-          ROM_NAME=$(find ../out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
-          
-          # Tạo JSON trạng thái bị hủy
-          jq -n \
-            --arg rn "$ROM_NAME" \
-            --arg url "${{ inputs.input_url }}" \
-            --arg commit "${{ steps.info.outputs.sha }}" \
-            --arg status "cancelled" \
-            '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: false, files: []}}' > "ROM/repo/$FILENAME"
-          
-          git add "ROM/repo/$FILENAME"
-          if ! git diff --cached --quiet; then
-            git commit -m "Update build status: cancelled (${{ steps.info.outputs.sha }} - $FILENAME)"
+            git commit -m "Update build status: $JOB_STATUS (${{ steps.info.outputs.sha }} - $FILENAME)"
             git push origin main
           fi
