@@ -29,56 +29,73 @@
           PD_API_KEY: ${{ secrets.PIXELDRAIN_API_KEY }}
         run: |
           FILE="${{ steps.split.outputs.file }}"
+          LINKS=""
 
           if [[ "${{ steps.split.outputs.split }}" == "true" ]]; then
-            LINKS=""
             COUNT=1
-
             for PART in "${FILE}.7z".*; do
               [ -e "$PART" ] || continue
-
-              echo "Uploading $PART"
-
-              RESPONSE=$(curl -s \
-                -u ":$PD_API_KEY" \
-                -F "file=@${PART}" \
-                https://pixeldrain.com/api/file)
-
-              ID=$(echo "$RESPONSE" | jq -r '.id')
+              echo "Uploading $PART..."
+              
+              # Vòng lặp tự động thử lại tối đa 3 lần nếu lỗi mạng
+              for i in {1..3}; do
+                RESPONSE=$(curl -s -w "\n%{http_code}" \
+                  -u ":$PD_API_KEY" \
+                  -F "file=@${PART}" \
+                  -F "anonymous=false" \
+                  https://pixeldrain.com/api/file)
+                
+                HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+                BODY=$(echo "$RESPONSE" | sed '$d')
+                ID=$(echo "$BODY" | jq -r '.id' 2>/dev/null)
+                
+                if [[ -n "$ID" && "$ID" != "null" && "$HTTP_STATUS" == "200" ]]; then
+                  break
+                fi
+                echo "Lần thử $i thất bại (HTTP $HTTP_STATUS). Đang thử lại sau 5 giây..."
+                sleep 5
+              done
 
               if [[ -z "$ID" || "$ID" == "null" ]]; then
-                echo "Upload failed for $PART. Response:"
-                echo "$RESPONSE"
-                exit 1
+                echo "Upload thất bại hoàn toàn cho $PART. Phản hồi từ Server: $BODY"
+                LINKS="Upload Failed"
+                break
               fi
 
               URL="https://pixeldrain.com/u/$ID"
-
               if [[ -z "$LINKS" ]]; then
                 LINKS="<a href='$URL'>Part $COUNT</a>"
               else
                 LINKS="$LINKS | <a href='$URL'>Part $COUNT</a>"
               fi
-
               COUNT=$((COUNT + 1))
             done
           else
-            echo "Uploading $FILE"
-
-            RESPONSE=$(curl -s \
-              -u ":$PD_API_KEY" \
-              -F "file=@${FILE}" \
-              https://pixeldrain.com/api/file)
-
-            ID=$(echo "$RESPONSE" | jq -r '.id')
+            echo "Uploading $FILE..."
+            for i in {1..3}; do
+              RESPONSE=$(curl -s -w "\n%{http_code}" \
+                -u ":$PD_API_KEY" \
+                -F "file=@${FILE}" \
+                -F "anonymous=false" \
+                https://pixeldrain.com/api/file)
+              
+              HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+              BODY=$(echo "$RESPONSE" | sed '$d')
+              ID=$(echo "$BODY" | jq -r '.id' 2>/dev/null)
+              
+              if [[ -n "$ID" && "$ID" != "null" && "$HTTP_STATUS" == "200" ]]; then
+                break
+              fi
+              echo "Lần thử $i thất bại (HTTP $HTTP_STATUS). Đang thử lại sau 5 giây..."
+              sleep 5
+            done
 
             if [[ -z "$ID" || "$ID" == "null" ]]; then
-              echo "Upload failed. Response:"
-              echo "$RESPONSE"
-              exit 1
+              echo "Upload thất bại hoàn toàn. Phản hồi từ Server: $BODY"
+              LINKS="Upload Failed"
+            else
+              LINKS="<a href='https://pixeldrain.com/u/$ID'>Download</a>"
             fi
-
-            LINKS="<a href='https://pixeldrain.com/u/$ID'>Download</a>"
           fi
 
           echo "links=$LINKS" >> "$GITHUB_OUTPUT"
