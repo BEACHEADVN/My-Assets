@@ -181,21 +181,6 @@ jobs:
             # 3. Sử dụng Perl một dòng để xóa đúng 2 dòng 'exit 1' trong khối MIUI
             perl -0777 -pi -e 's/(if\s+\[\[\s+\$rom_os\s+==\s+"MIUI"\s+\]\];\s+then.*?upload\s+"Error uploading file to OneDrive: \$FILENAME"\s*\n\s*)exit 1(\s*\n\s*}\s*\n\s*else.*?upload\s+"Error uploading file to OneDrive: \$FILENAME"\s*\n\s*)exit 1/\1\2/sg' ./uploadROM.sh
             
-            # 4. KIỂM TRA VÀ THÊM CỤM THAY ĐỔI CHUẨN NÉN ROM (Tránh chèn trùng)
-            if grep -q "THAY ĐỔI CHUẨN NÉN ROM" ./uploadROM.sh; then
-              echo "✅ Cấu hình THAY ĐỔI CHUẨN NÉN ROM đã tồn tại trong uploadROM.sh, bỏ qua!"
-            else
-              echo "📝 Tiến hành chèn tối ưu nén ROM bằng 7z Ultra vào uploadROM.sh..."
-              
-              # Chèn chú thích đánh dấu ở đầu file để kiểm tra trùng lặp
-              sed -i 's|#!/bin/bash|#!/bin/bash\n\n# THAY ĐỔI CHUẨN NÉN ROM\n# Thay thế lệnh zip mặc định bằng 7z nén Ultra|g' ./uploadROM.sh
-              
-              # Thực hiện thay thế lệnh zip truyền thống sang 7z nén Ultra mức 9
-              sed -i 's|zip -r \${os_type}_\${device_code}_\${base_rom_code}.zip .\/\*|7z a -tzip -mx=9 -mmt=on \${os_type}_\${device_code}_\${base_rom_code}.zip .\/\*|g' ./uploadROM.sh
-              
-              echo "✅ Đã cấu hình chuẩn nén ROM tối ưu thành công!"
-            fi
-            
             echo "Sửa script hoàn tất!"
           else
             echo "Không tìm thấy file uploadROM.sh để sửa!"
