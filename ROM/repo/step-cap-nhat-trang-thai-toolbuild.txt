@@ -1,5 +1,5 @@
 # =======================================================
-      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (SỬA LỖI JQ)
+      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (COMMIT NGẮN)
       # =======================================================
       - name: Update Status to My-Assets
         if: always()
@@ -20,40 +20,42 @@
             FILENAME="latest-stocktoolbuild-europe.txt"
           fi
           
-          # 2. Xác định trạng thái hiện tại của Job
+          # 2. Cắt mã commit ngắn (7 ký tự)
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          
+          # 3. Xác định trạng thái hiện tại của Job
           JOB_STATUS="${{ job.status }}"
           
-          # 3. Lấy ROM_NAME an toàn
+          # 4. Lấy ROM_NAME an toàn
           ROM_NAME="Unknown"
           if [ -d "../out" ]; then
             ROM_NAME=$(find ../out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
           fi
           : "${ROM_NAME:=Unknown}"
           
-          # 4. Xử lý dữ liệu đầu ra an toàn cho jq (Dùng --arg thay vì --argjson cho chuỗi tự do)
+          # 5. Xử lý dữ liệu đầu ra an toàn cho jq
           IS_SPLIT="false"
           PD_LINKS=""
           
           if [[ "$JOB_STATUS" == "success" ]]; then
             IS_SPLIT="${{ steps.split.outputs.split }}"
-            # Đổi sang lấy biến 'links' từ step pd của bạn
             PD_LINKS='${{ steps.pd.outputs.links }}'
           fi
           
-          # 5. Tạo JSON đầy đủ bằng jq (Dùng --arg cho $links để không bị crash chuỗi)
+          # 6. Tạo JSON đầy đủ bằng jq (Truyền biến $SHORT_SHA vào đây)
           jq -n \
             --arg rn "$ROM_NAME" \
             --arg url "${{ inputs.input_url }}" \
-            --arg commit "${{ github.sha }}" \
+            --arg commit "$SHORT_SHA" \
             --arg status "$JOB_STATUS" \
             --argjson split "$IS_SPLIT" \
             --arg links "$PD_LINKS" \
             '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: $split, links: $links}}' > "ROM/repo/$FILENAME"
           
-          # 6. Commit và đẩy lên với vòng lặp Rebase chống trùng matrix
+          # 7. Commit và đẩy lên với vòng lặp Rebase chống trùng matrix
           git add "ROM/repo/$FILENAME"
           if ! git diff --cached --quiet; then
-            git commit -m "Update build status: $JOB_STATUS (${{ github.sha }} - $FILENAME)"
+            git commit -m "Update build status: $JOB_STATUS ($SHORT_SHA - $FILENAME)"
             
             for i in {1..5}; do
               git pull --rebase origin main && git push origin main && break
