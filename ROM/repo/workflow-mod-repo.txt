@@ -172,7 +172,8 @@ jobs:
             echo "Đang xử lý chỉnh sửa file uploadROM.sh..."
             
             # 1. Tìm và thay thế giá trị ONEDRIVE_REMOTE
-            sed -i 's/ONEDROTE_REMOTE=.*/ONEDRIVE_REMOTE="nothings-toolbuild"/g' ./uploadROM.sh
+            # 1. Tìm và thay thế chính xác giá trị ONEDRIVE_REMOTE
+            sed -i 's/ONEDRIVE_REMOTE=.*/ONEDRIVE_REMOTE="nothings-toolbuild"/g' ./uploadROM.sh
             
             # 2. Xóa bỏ hoàn toàn 2 dòng dọn dẹp out và build
             sed -i '/rm -rf \$work_dir\/out/d' ./uploadROM.sh
