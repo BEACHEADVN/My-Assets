@@ -1,5 +1,5 @@
-# =======================================================
-      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (COMMIT NGẮN)
+      # =======================================================
+      # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (FIX LỖI MẤT NHÁY LINK)
       # =======================================================
       - name: Update Status to My-Assets
         if: always()
@@ -39,10 +39,15 @@
           
           if [[ "$JOB_STATUS" == "success" ]]; then
             IS_SPLIT="${{ steps.split.outputs.split }}"
-            PD_LINKS='${{ steps.pd.outputs.links }}'
+            
+            # Đọc chuỗi thô từ step pd
+            RAW_LINKS='${{ steps.pd.outputs.links }}'
+            
+            # Sửa lỗi mất nháy: Tự động thêm dấu nháy kép vào sau href=
+            PD_LINKS=$(echo "$RAW_LINKS" | sed -E 's/href=([^ >]+)/href="\1"/g')
           fi
           
-          # 6. Tạo JSON đầy đủ bằng jq (Truyền biến $SHORT_SHA vào đây)
+          # 6. Tạo JSON đầy đủ bằng jq
           jq -n \
             --arg rn "$ROM_NAME" \
             --arg url "${{ inputs.input_url }}" \
