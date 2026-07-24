@@ -1,1 +1,21 @@
+#app
+Calculator
+Health
+Updater
+Email
+MiuiBugReport  wps-lite
+GoogleCalendarSyncAdapter
+MiuiCompass
+GoogleTTS
+Notes
 
+#priv-app
+AndroidAutoStub
+MiShare
+FamilyLinkParentalControls
+MiuiScanner
+HotwordEnrollmentXGoogleHEXAGON_WIDEBAND
+SoundRecorder
+HotwordEnrollmentYGoogleHEXAGON_WIDEBAND
+Velvet
+LinkToWindows
