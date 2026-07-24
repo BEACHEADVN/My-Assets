@@ -1,10 +1,10 @@
 {
-  "rom_name": "Unknown",
+  "rom_name": "HyperOS_v1.2_MYRON_OS3.0.306.0.WPMCNXM_8557b_Official.zip",
   "url": "https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.306.0.WPMCNXM/myron-ota_full-OS3.0.306.0.WPMCNXM-user-16.0-0b34ee6a73.zip",
   "commit": "59e9523",
-  "status": "cancelled",
+  "status": "success",
   "pixeldrain": {
     "is_split": false,
-    "links": ""
+    "links": "<a href=\"https://pixeldrain.com/u/7XRpMNmp\">Download</a>"
   }
 }
