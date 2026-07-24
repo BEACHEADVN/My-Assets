@@ -187,22 +187,24 @@ jobs:
         shell: bash
         run: |
           if [ -f ./uploadROM.sh ]; then
-            echo "Đang xử lý chỉnh sửa file uploadROM.sh..."
+            echo "Modify uploadROM.sh script..."
             
-            # 1. Tìm và thay thế giá trị ONEDRIVE_REMOTE
-            # 1. Tìm và thay thế chính xác giá trị ONEDRIVE_REMOTE
+            # 1. Replace ONEDRIVE_REMOTE value
             sed -i 's/ONEDRIVE_REMOTE=.*/ONEDRIVE_REMOTE="nothings-toolbuild"/g' ./uploadROM.sh
             
-            # 2. Xóa bỏ hoàn toàn 2 dòng dọn dẹp out và build
+            # 2. Remove cleanup lines for out and build directories
             sed -i '/rm -rf \$work_dir\/out/d' ./uploadROM.sh
             sed -i '/rm -rf \$work_dir\/build/d' ./uploadROM.sh
             
-            # 3. Sử dụng Perl một dòng để xóa đúng 2 dòng 'exit 1' trong khối MIUI
+            # 3. Remove exit 1 in OneDrive block using Perl
             perl -0777 -pi -e 's/(if\s+\[\[\s+\$rom_os\s+==\s+"MIUI"\s+\]\];\s+then.*?upload\s+"Error uploading file to OneDrive: \$FILENAME"\s*\n\s*)exit 1(\s*\n\s*}\s*\n\s*else.*?upload\s+"Error uploading file to OneDrive: \$FILENAME"\s*\n\s*)exit 1/\1\2/sg' ./uploadROM.sh
             
-            echo "Sửa script hoàn tất!"
+            # 4. Remove exit 1 in Google Drive upload block
+            sed -i '/upload "Error uploading file to Google Drive"/{n; /exit 1/d}' ./uploadROM.sh
+            
+            echo "Script modification complete!"
           else
-            echo "Không tìm thấy file uploadROM.sh để sửa!"
+            echo "uploadROM.sh file not found!"
             exit 1
           fi
           
