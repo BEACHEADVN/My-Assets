@@ -224,12 +224,17 @@ jobs:
               
               # Kiểm tra xem file tải về có nội dung hợp lệ không
               if [ -s /tmp/font_inject.txt ]; then
-                echo "📝 Tiến hành chèn code vào ngay trước dòng check deviceTYPE..."
-                awk '/if \[\[ \$deviceTYPE == "China" \]\];then/{system("cat /tmp/font_inject.txt"); print ""}1' "$FONT_SCRIPT" > /tmp/font_out
-                mv /tmp/font_out "$FONT_SCRIPT"
+                echo "📝 Tiến hành chèn code vào cuối file update.sh..."
+                
+                # Đảm bảo file kết thúc bằng một dòng mới trước khi nối thêm
+                sed -i -e '$a\' "$FONT_SCRIPT"
+                
+                # Nối nội dung file /tmp/font_inject.txt vào cuối file target
+                cat /tmp/font_inject.txt >> "$FONT_SCRIPT"
+                rm -f /tmp/font_inject.txt
                 
                 chmod +x "$FONT_SCRIPT"
-                echo "✅ Đã chèn và hợp thức hóa file update.sh (Fonts) thành công!"
+                echo "✅ Đã chèn code vào cuối file update.sh (Fonts) thành công!"
               else
                 echo "❌ Tải nội dung từ GitHub thất bại hoặc file trống!"
               fi
