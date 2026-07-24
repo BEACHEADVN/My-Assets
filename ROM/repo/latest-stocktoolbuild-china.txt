@@ -1,7 +1,7 @@
 {
   "rom_name": "Unknown",
   "url": "https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.306.0.WPMCNXM/myron-ota_full-OS3.0.306.0.WPMCNXM-user-16.0-0b34ee6a73.zip",
-  "commit": "6904f37",
+  "commit": "59e9523",
   "status": "cancelled",
   "pixeldrain": {
     "is_split": false,
