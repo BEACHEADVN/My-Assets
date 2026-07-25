@@ -1,6 +1,7 @@
       # =======================================================
       # CẬP NHẬT TRẠNG THÁI JSON SANG MY-ASSETS (FIX LỖI MẤT NHÁY LINK)
       # =======================================================
+          
       - name: Update Status to My-Assets
         if: always()
         run: |
@@ -8,60 +9,64 @@
           cd my-assets
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+  
           mkdir -p ROM/repo
-          
+  
           # 1. Tự động nhận diện luồng dựa trên URL
-          FILENAME="latest-stocktoolbuild.txt"
+          FILENAME="latest-stocktoolbuild.md"
           URL_LOWER=$(echo "${{ inputs.input_url }}" | tr '[:upper:]' '[:lower:]')
           if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
-            FILENAME="latest-stocktoolbuild-china.txt"
+            FILENAME="latest-stocktoolbuild-china.md"
           elif [[ "$URL_LOWER" == *"eea"* || "$URL_LOWER" == *"eu"* || "$URL_LOWER" == *"europe"* ]]; then
-            FILENAME="latest-stocktoolbuild-europe.txt"
+            FILENAME="latest-stocktoolbuild-europe.md"
           fi
-          
+  
           # 2. Cắt mã commit ngắn (7 ký tự)
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          
+  
           # 3. Xác định trạng thái hiện tại của Job
           JOB_STATUS="${{ job.status }}"
-          
+  
           # 4. Lấy ROM_NAME an toàn
           ROM_NAME="Unknown"
           if [ -d "../out" ]; then
             ROM_NAME=$(find ../out -maxdepth 1 -name "*.zip" -exec basename {} \; | head -n1 || echo "Unknown")
           fi
           : "${ROM_NAME:=Unknown}"
-          
-          # 5. Xử lý dữ liệu đầu ra an toàn cho jq
+  
+          # 5. Xử lý dữ liệu đầu ra và trích xuất Link sạch
           IS_SPLIT="false"
-          PD_LINKS=""
-          
+          PD_URL=""
+  
           if [[ "$JOB_STATUS" == "success" ]]; then
             IS_SPLIT="${{ steps.split.outputs.split }}"
             
-            # Đọc chuỗi thô từ step pd
+            # Trích xuất duy nhất link URL sạch từ HTML
             RAW_LINKS='${{ steps.pd.outputs.links }}'
-            
-            # Sửa lỗi mất nháy: Tự động thêm dấu nháy kép vào sau href=
-            PD_LINKS=$(echo "$RAW_LINKS" | sed -E 's/href=([^ >]+)/href="\1"/g')
+            PD_URL=$(echo "$RAW_LINKS" | grep -oP 'https?://[^\s">]+' | head -n1)
           fi
-          
-          # 6. Tạo JSON đầy đủ bằng jq
-          jq -n \
-            --arg rn "$ROM_NAME" \
-            --arg url "${{ inputs.input_url }}" \
-            --arg commit "$SHORT_SHA" \
-            --arg status "$JOB_STATUS" \
-            --argjson split "$IS_SPLIT" \
-            --arg links "$PD_LINKS" \
-            '{rom_name: $rn, url: $url, commit: $commit, status: $status, pixeldrain: {is_split: $split, links: $links}}' > "ROM/repo/$FILENAME"
-          
-          # 7. Commit và đẩy lên với vòng lặp Rebase chống trùng matrix
+  
+          # 6. Tạo file Markdown render chuẩn giao diện web GitHub (Bấm vào link chuyển hướng ngay)
+          echo "# 📦 Build Status" > "ROM/repo/$FILENAME"
+          echo "" >> "ROM/repo/$FILENAME"
+          echo "- **ROM Name:** \`$ROM_NAME\`" >> "ROM/repo/$FILENAME"
+          echo "- **Status:** \`$JOB_STATUS\`" >> "ROM/repo/$FILENAME"
+          echo "- **Commit:** \`$SHORT_SHA\`" >> "ROM/repo/$FILENAME"
+          echo "- **Source URL:** [Click vào đây để tải Source ROM](${{ inputs.input_url }})" >> "ROM/repo/$FILENAME"
+          echo "" >> "ROM/repo/$FILENAME"
+          echo "### ⬇️ Pixeldrain Download" >> "ROM/repo/$FILENAME"
+          echo "- **Is Split:** \`$IS_SPLIT\`" >> "ROM/repo/$FILENAME"
+          if [ -n "$PD_URL" ]; then
+            echo "- **Download Link:** [$PD_URL]($PD_URL)" >> "ROM/repo/$FILENAME"
+          else
+            echo "- **Download Link:** N/A" >> "ROM/repo/$FILENAME"
+          fi
+  
+          # 7. Commit và đẩy lên với vòng lặp Rebase
           git add "ROM/repo/$FILENAME"
           if ! git diff --cached --quiet; then
             git commit -m "Update build status: $JOB_STATUS ($SHORT_SHA - $FILENAME)"
-            
+  
             for i in {1..5}; do
               git pull --rebase origin main && git push origin main && break
               echo "Tranh chấp luồng push, đang thử lại sau 3 giây..."
