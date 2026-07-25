@@ -71,10 +71,10 @@ jobs:
           FILE_PATH="my-assets/ROM/repo/$FILENAME"
           
           if [ -f "$FILE_PATH" ]; then
-            # Trích xuất URL, Commit và Status đã lưu bằng jq
-            LAST_URL=$(jq -r '.url' "$FILE_PATH" || echo "")
-            LAST_COMMIT=$(jq -r '.commit' "$FILE_PATH" || echo "")
-            LAST_STATUS=$(jq -r '.status' "$FILE_PATH" || echo "")
+            # Trích xuất URL, Commit và Status từ file Markdown (.md)
+            LAST_URL=$(grep -i "Link rom gốc" "$FILE_PATH" | head -n 1 | sed -E 's/.*\((http[^)]+)\).*/\1/' | xargs 2>/dev/null || echo "")
+            LAST_COMMIT=$(grep -i "Commit" "$FILE_PATH" | head -n 1 | sed -E 's/.*`([^`]+)`.*/\1/' | xargs 2>/dev/null || echo "")
+            LAST_STATUS=$(grep -i "Trạng thái" "$FILE_PATH" | head -n 1 | sed -E 's/.*`([^`]+)`.*/\1/' | xargs 2>/dev/null || echo "")
             
             echo "🔍 DỮ LIỆU ĐÃ LƯU TRÊN MY-ASSETS:"
             echo "   - Link ROM cũ: $LAST_URL"
