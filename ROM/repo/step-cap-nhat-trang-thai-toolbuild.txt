@@ -49,13 +49,13 @@
           # 6. Tạo file Markdown render chuẩn giao diện web GitHub (Bấm vào link chuyển hướng ngay)
           echo "# 📦 Build Status" > "ROM/repo/$FILENAME"
           echo "" >> "ROM/repo/$FILENAME"
-          echo "- **ROM Name:** \`$ROM_NAME\`" >> "ROM/repo/$FILENAME"
-          echo "- **Status:** \`$JOB_STATUS\`" >> "ROM/repo/$FILENAME"
+          echo "- **Tên ROM:** \`$ROM_NAME\`" >> "ROM/repo/$FILENAME"
+          echo "- **Trạng thái:** \`$JOB_STATUS\`" >> "ROM/repo/$FILENAME"
           echo "- **Commit:** \`$SHORT_SHA\`" >> "ROM/repo/$FILENAME"
-          echo "- **Source URL:** [Click vào đây để tải Source ROM](${{ inputs.input_url }})" >> "ROM/repo/$FILENAME"
+          echo "- **Link rom gốc:** [Click vào đây để tải ROM gốc](${{ inputs.input_url }})" >> "ROM/repo/$FILENAME"
           echo "" >> "ROM/repo/$FILENAME"
           echo "### ⬇️ Pixeldrain Download" >> "ROM/repo/$FILENAME"
-          echo "- **Is Split:** \`$IS_SPLIT\`" >> "ROM/repo/$FILENAME"
+          echo "- **Cắt file:** \`$IS_SPLIT\`" >> "ROM/repo/$FILENAME"
           if [ -n "$PD_URL" ]; then
             echo "- **Download Link:** [$PD_URL]($PD_URL)" >> "ROM/repo/$FILENAME"
           else
