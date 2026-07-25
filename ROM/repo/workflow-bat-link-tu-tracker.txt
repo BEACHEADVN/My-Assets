@@ -28,14 +28,14 @@ jobs:
           # Chuyển URL về chữ thường để so khớp
           URL_LOWER=$(echo "$ROM_URL" | tr '[:upper:]' '[:lower:]')
           REGION="Unknown/Global"
-          FILENAME="latest-stocktoolbuild.txt"
+          FILENAME="latest-stocktoolbuild.md"
           
           if [[ "$URL_LOWER" == *"cn"* || "$URL_LOWER" == *"china"* ]]; then
             REGION="China"
-            FILENAME="latest-stocktoolbuild-china.txt"
+            FILENAME="latest-stocktoolbuild-china.md"
           elif [[ "$URL_LOWER" == *"eea"* || "$URL_LOWER" == *"eu"* || "$URL_LOWER" == *"europe"* ]]; then
             REGION="Europe (EEA)"
-            FILENAME="latest-stocktoolbuild-europe.txt"
+            FILENAME="latest-stocktoolbuild-europe.md"
           fi
           
           echo "region=$REGION" >> $GITHUB_OUTPUT
