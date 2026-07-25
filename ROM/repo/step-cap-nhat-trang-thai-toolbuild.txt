@@ -57,9 +57,9 @@
           echo "### ⬇️ Pixeldrain Download" >> "ROM/repo/$FILENAME"
           echo "- **Cắt file:** \`$IS_SPLIT\`" >> "ROM/repo/$FILENAME"
           if [ -n "$PD_URL" ]; then
-            echo "- **Download Link:** [$PD_URL]($PD_URL)" >> "ROM/repo/$FILENAME"
+            echo "- **Link tải:** [$PD_URL]($PD_URL)" >> "ROM/repo/$FILENAME"
           else
-            echo "- **Download Link:** N/A" >> "ROM/repo/$FILENAME"
+            echo "- **Link tải:** N/A" >> "ROM/repo/$FILENAME"
           fi
   
           # 7. Commit và đẩy lên với vòng lặp Rebase
