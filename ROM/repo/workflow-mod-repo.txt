@@ -370,6 +370,17 @@ jobs:
             echo "⚠️ Không tìm thấy file packROM.sh để chỉnh sửa."
           fi
 
+      - name: Modify function.sh Script
+        shell: bash
+        run: |
+          if [ -f ./function.sh ]; then
+            echo "📝 Tiến hành cập nhật hàm extract_partition trong ./function.sh..."
+            sed -i 's|extract.erofs -x -i ${part_img} -o ${target_dir}/${part_name%.*}|extract.erofs -x -i ${part_img} -o ${target_dir}|g' ./function.sh
+            echo "✅ Đã cập nhật đường dẫn xả EROFS thành công!"
+          else
+            echo "⚠️ Không tìm thấy file ./function.sh."
+          fi
+
       - name: Push changes to Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -378,14 +389,14 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           # Hợp thức hóa các file đã chỉnh sửa trực tiếp trong repo
-          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh
+          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh ./function.sh 2>/dev/null || true
           
           # Chỉ tiến hành git add tài nguyên nếu có thay đổi tải về từ My-Assets
           if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, update uploadROM.sh (with compression parameters), inject Font lists, manage Boot and Font files, and install essential utilities" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, update uploadROM.sh, inject Font lists, manage Boot/Font files, update extract_partition in function.sh, and install essential utilities" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
