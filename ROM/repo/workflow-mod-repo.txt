@@ -432,15 +432,14 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Hợp thức hóa các file đã chỉnh sửa trực tiếp trong repo
-          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh
+          # Hợp thức hóa các file đã chỉnh sửa
+          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh ./bin/vbpatcher.py ./bin/package/DISABLE_AVB/DISABLEavb.sh
           
-          # Chỉ tiến hành git add tài nguyên nếu có thay đổi tải về từ My-Assets
           if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, update uploadROM.sh (with compression parameters), inject Font lists, manage Boot and Font files, and install essential utilities" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, update scripts, sync vbpatcher.py and DISABLEavb.sh" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
