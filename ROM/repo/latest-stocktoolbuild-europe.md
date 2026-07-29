@@ -1,10 +1,10 @@
 # 📦 Build Status
 
-- **Tên ROM:** `Unknown`
-- **Trạng thái:** `cancelled`
-- **Commit:** `ebcba1a`
+- **Tên ROM:** `HyperOS_v1.2_MYRONEEAGlobal_OS3.0.301.0.WPMEUXM_81ace_Official.zip`
+- **Trạng thái:** `success`
+- **Commit:** `eb20bfc`
 - **Link rom gốc:** [Click vào đây để tải ROM gốc](https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.301.0.WPMEUXM/myron_eea_global-ota_full-OS3.0.301.0.WPMEUXM-user-16.0-aa3aa56260.zip)
 
 ### ⬇️ Pixeldrain Download
 - **Cắt file:** `false`
-- **Link tải:** N/A
+- **Link tải:** [https://pixeldrain.com/u/CEt24Jcv](https://pixeldrain.com/u/CEt24Jcv)
