@@ -406,7 +406,24 @@ jobs:
             echo "✅ Đã cập nhật bin/vbpatcher.py thành công!"
           fi
 
-      
+      - name: Check and Sync DISABLEavb.sh
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: bash
+        run: |
+          SCRIPT_PATH="./bin/package/DISABLE_AVB/DISABLEavb.sh"
+          RAW_URL="https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/repo/DISABLEavb.sh"
+
+          mkdir -p "./bin/package/DISABLE_AVB"
+
+          if [ -f "$SCRIPT_PATH" ] && grep -q "^#chinh-sua-DISABLEavb" "$SCRIPT_PATH"; then
+            echo "✅ File DISABLEavb.sh đã chứa '#chinh-sua-DISABLEavb' ở đầu, bỏ qua."
+          else
+            echo "📥 Đang tải file DISABLEavb.sh mới từ My-Assets..."
+            curl -s -H "Authorization: token $GH_TOKEN" -L "$RAW_URL" -o "$SCRIPT_PATH"
+            chmod +x "$SCRIPT_PATH"
+            echo "✅ Đã cập nhật DISABLEavb.sh thành công!"
+          fi
 
       - name: Push changes to Repository
         env:
