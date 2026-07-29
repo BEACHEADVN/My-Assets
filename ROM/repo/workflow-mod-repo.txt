@@ -425,6 +425,25 @@ jobs:
             echo "✅ Đã cập nhật DISABLEavb.sh thành công!"
           fi
 
+      - name: Check and Sync fetchINFO.sh
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: bash
+        run: |
+          SCRIPT_PATH="./bin/ddevice/fetchINFO.sh"
+          RAW_URL="https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/repo/fetchINFO.sh"
+
+          mkdir -p "./bin/ddevice"
+
+          if [ -f "$SCRIPT_PATH" ] && grep -q "^#xu-ly-device_code" "$SCRIPT_PATH"; then
+            echo "✅ File fetchINFO.sh đã chứa '#xu-ly-device_code' ở đầu, bỏ qua."
+          else
+            echo "📥 Đang tải file fetchINFO.sh mới từ My-Assets..."
+            curl -s -H "Authorization: token $GH_TOKEN" -L "$RAW_URL" -o "$SCRIPT_PATH"
+            chmod +x "$SCRIPT_PATH"
+            echo "✅ Đã cập nhật fetchINFO.sh thành công!"
+          fi
+
       - name: Push changes to Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -433,13 +452,13 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           # Hợp thức hóa các file đã chỉnh sửa
-          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh ./bin/vbpatcher.py ./bin/package/DISABLE_AVB/DISABLEavb.sh
+          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh ./bin/vbpatcher.py ./bin/package/DISABLE_AVB/DISABLEavb.sh ./bin/ddevice/fetchINFO.sh
           
           if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, update scripts, sync vbpatcher.py and DISABLEavb.sh" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, update scripts, sync vbpatcher.py, DISABLEavb.sh and fetchINFO.sh" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
