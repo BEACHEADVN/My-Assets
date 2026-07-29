@@ -388,6 +388,26 @@ jobs:
             echo "⚠️ Không tìm thấy file packROM.sh để chỉnh sửa."
           fi
 
+      - name: Check and Sync vbpatcher.py
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: bash
+        run: |
+          VBPATCHER_PATH="./bin/vbpatcher.py"
+          RAW_URL="https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/repo/vbpatcher.py"
+
+          mkdir -p "./bin"
+
+          if [ -f "$VBPATCHER_PATH" ] && grep -q "^#chinh-sua-vbpatcher" "$VBPATCHER_PATH"; then
+            echo "✅ File bin/vbpatcher.py đã chứa '#chinh-sua-vbpatcher' ở đầu, bỏ qua."
+          else
+            echo "📥 Đang tải file vbpatcher.py mới từ My-Assets..."
+            curl -s -H "Authorization: token $GH_TOKEN" -L "$RAW_URL" -o "$VBPATCHER_PATH"
+            echo "✅ Đã cập nhật bin/vbpatcher.py thành công!"
+          fi
+
+      
+
       - name: Push changes to Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
