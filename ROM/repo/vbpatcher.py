@@ -1,3 +1,4 @@
+#chinh-sua-vbpatcher
 import os
 import struct
 import json
