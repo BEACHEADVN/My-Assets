@@ -1,4 +1,5 @@
 name: Mod repo
+run-name: "Mod repo"
 on:
   repository_dispatch:
     types: [tracker_trigger]
@@ -16,7 +17,7 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
 
-      # Step xử lý kiểm tra và sao chép cấu trúc tài nguyên (Boot & Fonts chi tiết)
+      # Step processing resource checks and copying (Boot & Fonts detailed)
       - name: Sync Resources (Boot and Specific Fonts)
         if: ${{ github.event.client_payload.enable_sync_resources != false }}
         env:
@@ -29,50 +30,50 @@ jobs:
           NEED_BOOT=0
           NEED_FONT=0
 
-          echo "🔍 Kiểm tra các file yêu cầu trong $BOOT_DIR..."
+          echo "Checking required files in $BOOT_DIR..."
           if [ -f "$BOOT_DIR/bootanimation.zip" ] && [ -f "$BOOT_DIR/bootaudio.mp3" ] && [ -f "$BOOT_DIR/update.sh" ]; then
-            echo "✅ Thư mục Boot đã có đầy đủ 3 file (bootanimation.zip, bootaudio.mp3, update.sh)."
+            echo "Boot directory has all 3 required files (bootanimation.zip, bootaudio.mp3, update.sh)."
           else
-            echo "⚠️ Thiếu một hoặc nhiều file mục tiêu trong thư mục Boot. Đánh dấu cần tải bổ sung..."
+            echo "Missing required file(s) in Boot directory. Marking for download..."
             mkdir -p "$BOOT_DIR"
             NEED_BOOT=1
           fi
 
-          echo "🔍 Kiểm tra các file font trong $FONT_DIR..."
+          echo "Checking font files in $FONT_DIR..."
           if [ -f "$FONT_DIR/Bauhaus.ttf" ] && [ -f "$FONT_DIR/product_fonts.list" ] && [ -f "$FONT_DIR/system_fonts.list" ]; then
-            echo "✅ Đã tìm thấy đầy đủ 3 file font (Bauhaus.ttf, product_fonts.list, system_fonts.list)."
+            echo "Found all 3 required font files (Bauhaus.ttf, product_fonts.list, system_fonts.list)."
           else
-            echo "⚠️ Thiếu một hoặc nhiều file font mục tiêu trong thư mục Fonts. Đánh dấu cần tải bổ sung..."
+            echo "Missing required font file(s) in Fonts directory. Marking for download..."
             mkdir -p "$FONT_DIR"
             NEED_FONT=1
           fi
 
           if [ "$NEED_BOOT" = "1" ] || [ "$NEED_FONT" = "1" ]; then
-            echo "📥 Đang tải tạm thời repository My-Assets..."
+            echo "Cloning My-Assets repository..."
             git clone --depth 1 https://x-access-token:${GH_TOKEN}@github.com/BEACHEADVN/My-Assets.git assets_temp
             
             if [ "$NEED_BOOT" = "1" ]; then
-              echo "🚚 Sao chép file sang Boot..."
-              cp -r assets_temp/ROM/boot/* "$BOOT_DIR/" 2>/dev/null || echo "Thư mục ROM/boot rỗng."
+              echo "Copying files to Boot..."
+              cp -r assets_temp/ROM/boot/* "$BOOT_DIR/" 2>/dev/null || echo "ROM/boot directory is empty."
               
               if [ -f "assets_temp/ROM/repo/update-sh-boot.txt" ]; then
-                echo "🔄 Đang sao chép và đổi tên update-sh-boot.txt thành update.sh..."
+                echo "Copying and renaming update-sh-boot.txt to update.sh..."
                 cp "assets_temp/ROM/repo/update-sh-boot.txt" "$BOOT_DIR/update.sh"
                 chmod +x "$BOOT_DIR/update.sh"
               else
-                echo "⚠️ Không tìm thấy file update-sh-boot.txt trong assets_temp/ROM/repo/"
+                echo "update-sh-boot.txt not found in assets_temp/ROM/repo/"
               fi
             fi
 
             if [ "$NEED_FONT" = "1" ]; then
-              echo "🚚 Sao chép toàn bộ font từ ROM/font sang Fonts/HyperOS..."
-              cp -r assets_temp/ROM/font/* "$FONT_DIR/" 2>/dev/null || echo "Thư mục ROM/font trống."
+              echo "Copying all fonts from ROM/font to Fonts/HyperOS..."
+              cp -r assets_temp/ROM/font/* "$FONT_DIR/" 2>/dev/null || echo "ROM/font directory is empty."
             fi
 
             rm -rf assets_temp
             echo "SHOULD_PUSH_RESOURCES=1" >> $GITHUB_ENV
           else
-            echo "✅ Tất cả thư mục tài nguyên và file font đều đầy đủ. Bỏ qua tải."
+            echo "All resource directories and font files are present. Skipping download."
             echo "SHOULD_PUSH_RESOURCES=0" >> $GITHUB_ENV
           fi
 
@@ -91,7 +92,7 @@ jobs:
               with open(build_path, "r", encoding="utf-8") as f:
                   build_lines = f.readlines()
               if any("Fetch Secret rclone.conf to Root Directory" in line for line in build_lines):
-                  print("Step Rclone đã tồn tại, bỏ qua.")
+                  print("Rclone step already exists, skipping.")
                   exit(0)
               target_idx = -1
               for i, line in enumerate(build_lines):
@@ -120,7 +121,7 @@ jobs:
                   build_lines.insert(target_idx, rclone_code)
                   with open(build_path, "w", encoding="utf-8") as f:
                       f.writelines(build_lines)
-                  print("Đã chèn Rclone chuẩn cấu trúc thành công.")
+                  print("Injected Rclone step successfully.")
           EOF
 
       - name: Inject Pixeldrain Step
@@ -138,7 +139,7 @@ jobs:
               with open(build_path, "r", encoding="utf-8") as f:
                   build_lines = f.readlines()
               if any("Split Large File" in line for line in build_lines):
-                  print("Step Pixeldrain đã tồn tại, bỏ qua.")
+                  print("Pixeldrain step already exists, skipping.")
                   exit(0)
               target_idx = -1
               for i, line in enumerate(build_lines):
@@ -167,7 +168,7 @@ jobs:
                   build_lines.insert(target_idx, pixeldrain_code)
                   with open(build_path, "w", encoding="utf-8") as f:
                       f.writelines(build_lines)
-                  print("Đã chèn Pixeldrain chuẩn cấu trúc thành công.")
+                  print("Injected Pixeldrain step successfully.")
           EOF
 
       - name: Modify uploadROM.sh Script
@@ -208,24 +209,24 @@ jobs:
           
           if [ -f "$FONT_SCRIPT" ]; then
             if grep -q "copy_bauhaus_from_list" "$FONT_SCRIPT"; then
-              echo "✅ Logic xử lý font list đã tồn tại trong update.sh, bỏ qua chèn để tránh trùng lặp."
+              echo "Font list logic already exists in update.sh, skipping injection."
             else
-              echo "📥 Đang tải đoạn code chèn từ GitHub..."
+              echo "Downloading code snippet from GitHub..."
               curl -sL "$INJECT_URL" > /tmp/font_inject.txt
               
               if [ -s /tmp/font_inject.txt ]; then
-                echo "📝 Tiến hành chèn code vào cuối file update.sh..."
+                echo "Appending code to update.sh..."
                 sed -i -e '$a\' "$FONT_SCRIPT"
                 cat /tmp/font_inject.txt >> "$FONT_SCRIPT"
                 rm -f /tmp/font_inject.txt
                 chmod +x "$FONT_SCRIPT"
-                echo "✅ Đã chèn code vào cuối file update.sh (Fonts) thành công!"
+                echo "Injected code to update.sh (Fonts) successfully!"
               else
-                echo "❌ Tải nội dung từ GitHub thất bại hoặc file trống!"
+                echo "Download failed or empty file!"
               fi
             fi
           else
-            echo "⚠️ Không tìm thấy file gốc tại $FONT_SCRIPT để chỉnh sửa."
+            echo "File $FONT_SCRIPT not found!"
           fi
 
       - name: Inject Update Toolbuild Status Step
@@ -244,7 +245,7 @@ jobs:
                   build_lines = f.readlines()
               
               if any("Update Status to My-Assets" in line for line in build_lines):
-                  print("Step Update Toolbuild Status đã tồn tại, bỏ qua.")
+                  print("Update Toolbuild Status step already exists, skipping.")
                   exit(0)
                   
               target_idx = -1
@@ -287,9 +288,9 @@ jobs:
                   
                   with open(build_path, "w", encoding="utf-8") as f:
                       f.writelines(build_lines)
-                  print("Đã chèn step Cập nhật trạng thái Toolbuild chuẩn cấu trúc thành công.")
+                  print("Injected Toolbuild Status step successfully.")
               else:
-                  print("⚠️ Không tìm thấy step '- name: Upload to Pixeldrain' trong file build.yml.")
+                  print("Step '- name: Upload to Pixeldrain' not found in build.yml.")
           EOF
 
       - name: Inject Packages into build.yml
@@ -303,7 +304,7 @@ jobs:
                   lines = f.readlines()
               
               if any("pip3 install lz4" in line for line in lines):
-                  print("✅ Dòng 'sudo pip3 install lz4' đã tồn tại trong build.yml, bỏ qua.")
+                  print("Line 'sudo pip3 install lz4' already exists in build.yml, skipping.")
                   exit(0)
                   
               start_idx = -1
@@ -313,7 +314,7 @@ jobs:
                       break
               
               if start_idx != -1:
-                  print("📝 Tìm thấy step 'Install tools and send start notification', đang kiểm tra và chèn...")
+                  print("Found step 'Install tools and send start notification', checking and inserting...")
                   
                   target_insert_idx = -1
                   for i in range(start_idx, len(lines)):
@@ -337,11 +338,11 @@ jobs:
                       
                       with open(build_path, "w", encoding="utf-8") as f:
                           f.writelines(lines)
-                      print("✅ Đã chèn chính xác 'sudo pip3 install lz4' vào block Install tools!")
+                      print("Inserted 'sudo pip3 install lz4' into Install tools block successfully!")
                   else:
-                      print("⚠️ Không tìm thấy vị trí thích hợp trong block Install tools.")
+                      print("Appropriate position not found in Install tools block.")
               else:
-                  print("⚠️ Không tìm thấy step 'Install tools and send start notification' trong build.yml.")
+                  print("Step 'Install tools and send start notification' not found in build.yml.")
           EOF
 
       - name: Modify packROM.sh Script
@@ -349,11 +350,11 @@ jobs:
         shell: bash
         run: |
           if [ -f ./packROM.sh ]; then
-            echo "📝 Đang tiến hành xóa flag --sparse trong packROM.sh..."
+            echo "Removing --sparse flag in packROM.sh..."
             sed -i 's/mkfs.erofs \(.*\)--sparse \(.*\)/mkfs.erofs \1\2/g' ./packROM.sh
-            echo "✅ Đã loại bỏ flag hoàn tất!"
+            echo "Flag removal complete!"
           else
-            echo "⚠️ Không tìm thấy file packROM.sh để chỉnh sửa."
+            echo "File packROM.sh not found."
           fi
 
       - name: Check and Sync vbpatcher.py
@@ -368,11 +369,11 @@ jobs:
           mkdir -p "./bin"
 
           if [ -f "$VBPATCHER_PATH" ] && grep -q "^#chinh-sua-vbpatcher" "$VBPATCHER_PATH"; then
-            echo "✅ File bin/vbpatcher.py đã chứa '#chinh-sua-vbpatcher' ở đầu, bỏ qua."
+            echo "File bin/vbpatcher.py already contains '#chinh-sua-vbpatcher', skipping."
           else
-            echo "📥 Đang tải file vbpatcher.py mới từ My-Assets..."
+            echo "Downloading updated vbpatcher.py from My-Assets..."
             curl -s -H "Authorization: token $GH_TOKEN" -L "$RAW_URL" -o "$VBPATCHER_PATH"
-            echo "✅ Đã cập nhật bin/vbpatcher.py thành công!"
+            echo "Updated bin/vbpatcher.py successfully!"
           fi
 
       - name: Check and Sync DISABLEavb.sh
@@ -387,12 +388,12 @@ jobs:
           mkdir -p "./bin/package/DISABLE_AVB"
 
           if [ -f "$SCRIPT_PATH" ] && grep -q "^#chinh-sua-DISABLEavb" "$SCRIPT_PATH"; then
-            echo "✅ File DISABLEavb.sh đã chứa '#chinh-sua-DISABLEavb' ở đầu, bỏ qua."
+            echo "File DISABLEavb.sh already contains '#chinh-sua-DISABLEavb', skipping."
           else
-            echo "📥 Đang tải file DISABLEavb.sh mới từ My-Assets..."
+            echo "Downloading updated DISABLEavb.sh from My-Assets..."
             curl -s -H "Authorization: token $GH_TOKEN" -L "$RAW_URL" -o "$SCRIPT_PATH"
             chmod +x "$SCRIPT_PATH"
-            echo "✅ Đã cập nhật DISABLEavb.sh thành công!"
+            echo "Updated DISABLEavb.sh successfully!"
           fi
 
       - name: Check and Sync fetchINFO.sh
@@ -407,12 +408,12 @@ jobs:
           mkdir -p "./bin/ddevice"
 
           if [ -f "$SCRIPT_PATH" ] && grep -q "^#xu-ly-device_code" "$SCRIPT_PATH"; then
-            echo "✅ File fetchINFO.sh đã chứa '#xu-ly-device_code' ở đầu, bỏ qua."
+            echo "File fetchINFO.sh already contains '#xu-ly-device_code', skipping."
           else
-            echo "📥 Đang tải file fetchINFO.sh mới từ My-Assets..."
+            echo "Downloading updated fetchINFO.sh from My-Assets..."
             curl -s -H "Authorization: token $GH_TOKEN" -L "$RAW_URL" -o "$SCRIPT_PATH"
             chmod +x "$SCRIPT_PATH"
-            echo "✅ Đã cập nhật fetchINFO.sh thành công!"
+            echo "Updated fetchINFO.sh successfully!"
           fi
 
       - name: Sync unique lines from debloat-list.txt to APPLIST.txt
@@ -439,7 +440,7 @@ jobs:
 
             if ! grep -qxF "$line_clean" "$TARGET_FILE"; then
               echo "$line_clean" >> "$TARGET_FILE"
-              echo "➕ Thêm ứng dụng mới: $line_clean"
+              echo "Added new app: $line_clean"
               ADDED_COUNT=$((ADDED_COUNT + 1))
             fi
           done < "$TEMP_REMOTE"
@@ -447,9 +448,9 @@ jobs:
           rm -f "$TEMP_REMOTE"
 
           if [ $ADDED_COUNT -eq 0 ]; then
-            echo "✅ Tất cả các dòng trong debloat-list.txt đều đã có sẵn trong APPLIST.txt."
+            echo "All lines from debloat-list.txt are already present in APPLIST.txt."
           else
-            echo "🎉 Đã thêm thành công $ADDED_COUNT dòng mới vào APPLIST.txt!"
+            echo "Successfully added $ADDED_COUNT new lines to APPLIST.txt!"
           fi
 
       - name: Push changes to Repository
@@ -465,7 +466,7 @@ jobs:
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, fetchINFO.sh and update APPLIST.txt" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, fetchINFO.sh and update APPLIST.txt" || echo "No changes to commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
