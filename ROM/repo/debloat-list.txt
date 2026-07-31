@@ -18,7 +18,6 @@ MiuiScanner
 SoundRecorder
 Velvet
 PersonalAssistant
-LatinImeGoogle
 VieOSToolbox
 PrintSpooler
 MiService
@@ -29,7 +28,6 @@ PaymentService
 MiConnectService
 MipayService
 AiAsstVision
-SetupWizard
 EmergencyInfo
 MiuiVideoPlayer
 Music
@@ -43,6 +41,5 @@ MiBrowser
 MiMover
 MiCloudSync
 CellBroadcastAppPlatform
-HTMLViewer
 talkback
 HealthConnectController@BP2A.250605.031.A3
