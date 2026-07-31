@@ -1,0 +1,398 @@
+name: HyperOS ROM Tracker
+on:
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Ép build (Bỏ qua kiểm tra trùng lặp ở repo đích)'
+        required: true
+        type: boolean
+        default: false
+      enable_sync_resources:
+        description: 'Sync Resources (Boot and Specific Fonts)'
+        required: true
+        type: boolean
+        default: true
+      enable_rclone:
+        description: 'Inject Rclone Step'
+        required: true
+        type: boolean
+        default: false
+      enable_pixeldrain:
+        description: 'Inject Pixeldrain Step'
+        required: true
+        type: boolean
+        default: true
+      enable_mod_uploadrom:
+        description: 'Modify uploadROM.sh Script'
+        required: true
+        type: boolean
+        default: true
+      enable_font_logic:
+        description: 'Fetch and Inject Font Logic'
+        required: true
+        type: boolean
+        default: true
+      enable_update_status:
+        description: 'Inject Update Toolbuild Status Step'
+        required: true
+        type: boolean
+        default: true
+      enable_inject_packages:
+        description: 'Inject Packages into build.yml'
+        required: true
+        type: boolean
+        default: true
+      enable_mod_packrom:
+        description: 'Modify packROM.sh Script'
+        required: true
+        type: boolean
+        default: true
+      enable_sync_vbpatcher:
+        description: 'Check and Sync vbpatcher.py'
+        required: true
+        type: boolean
+        default: true
+      enable_sync_disableavb:
+        description: 'Check and Sync DISABLEavb.sh'
+        required: true
+        type: boolean
+        default: true
+      enable_sync_fetchinfo:
+        description: 'Check and Sync fetchINFO.sh'
+        required: true
+        type: boolean
+        default: true
+      enable_sync_debloat:
+        description: 'Sync unique lines to APPLIST.txt'
+        required: true
+        type: boolean
+        default: true
+
+  schedule:
+    # Chạy tự động hàng giờ
+    - cron: '0 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hyperos-tracker
+  cancel-in-progress: false
+
+jobs:
+# JOB 1: Đồng bộ, cứu hộ và ĐỢI mod-repo.yml chạy xong
+  sync-and-prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Target Repository
+        uses: actions/checkout@v4
+        with:
+          repository: 'BEACHEADVN/nothingsvn_xiaomi-stocktoolbuild'
+          token: ${{ secrets.GH_TOKEN }}
+          ref: 'main'
+          fetch-depth: 0 # Lấy đủ lịch sử commit để kiểm tra chính xác
+
+      - name: Check Upstream Commits Before Sync
+        id: check_upstream
+        run: |
+          echo "🔄 Đang kiểm tra lịch sử commit giữa repo gốc và repo fork..."
+          
+          # 1. Thêm remote upstream nếu chưa tồn tại
+          git remote add upstream https://github.com/tiencv2006/nothingsvn_xiaomi-stocktoolbuild.git || true
+          git fetch upstream main
+          
+          UPSTREAM_SHA=$(git rev-parse upstream/main)
+          echo "📍 Commit mới nhất của repo gốc (upstream): $UPSTREAM_SHA"
+          echo "📍 Commit hiện tại trên repo fork của bạn: $(git rev-parse HEAD)"
+          
+          # 2. Đánh giá xem có cần ép buộc đè code hay không
+          if [ "${{ github.event.inputs.force_build }}" = "true" ]; then
+            echo "⚠️ Chế độ Force Build được bật! Buộc phải Sync Fork."
+            echo "SHOULD_SYNC=true" >> $GITHUB_ENV
+          elif git merge-base --is-ancestor "$UPSTREAM_SHA" HEAD; then
+            echo "=========================================================================="
+            echo "⛔ Repo gốc không có commit mới. Các thay đổi của bạn đang an toàn."
+            echo "⏭️ BỎ QUA bước Sync Fork đè code để bảo vệ commit của bạn. Vẫn chạy các bước tiếp theo!"
+            echo "=========================================================================="
+            echo "SHOULD_SYNC=false" >> $GITHUB_ENV
+          else
+            echo "🚀 Phát hiện repo gốc có thay đổi mới! Sẽ tiến hành Sync Fork."
+            echo "SHOULD_SYNC=true" >> $GITHUB_ENV
+          fi
+
+      - name: Sync Fork Layout
+        if: env.SHOULD_SYNC == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "🔄 Đang tiến hành Sync Fork cưỡng bách cho repo..."
+          
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Chỉ chạy khi thực sự có code mới: Đè cứng về trạng thái code gốc sạch sẽ nhất
+          git reset --hard upstream/main
+          git push origin main --force
+          
+          echo "✅ Đã Sync Fork và cập nhật đè code mới thành công!"
+
+      - name: Verify and Download Workflow Files
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: bash
+        run: |
+          echo "=== KIỂM TRA CÁC WORKFLOWS ==="
+          mkdir -p .github/workflows
+          UPDATED=0
+          if [ ! -f .github/workflows/bat-link-tu-tracker.yml ]; then
+            curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3.raw" \
+              -L "https://api.github.com/repos/BEACHEADVN/My-Assets/contents/ROM/repo/workflow-bat-link-tu-tracker.txt?ref=main" \
+              -o .github/workflows/bat-link-tu-tracker.yml
+            UPDATED=1
+          fi
+          if [ ! -f .github/workflows/mod-repo.yml ]; then
+            curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github.v3.raw" \
+              -L "https://api.github.com/repos/BEACHEADVN/My-Assets/contents/ROM/repo/workflow-mod-repo.txt?ref=main" \
+              -o .github/workflows/mod-repo.yml
+            UPDATED=1
+          fi
+          echo "UPDATED=$UPDATED" >> $GITHUB_ENV
+
+      - name: Push Workflows if Missing
+        if: env.UPDATED == '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/bat-link-tu-tracker.yml .github/workflows/mod-repo.yml
+          git commit -m "Auto recovery missing workflows"
+          git push origin main
+
+      - name: Trigger and Wait for mod-repo Workflow
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Xác định giá trị các tham số (nếu chạy tự động theo schedule thì lấy mặc định)
+          ENABLE_SYNC_RESOURCES="${{ github.event.inputs.enable_sync_resources }}"
+          [ -z "$ENABLE_SYNC_RESOURCES" ] && ENABLE_SYNC_RESOURCES="true"
+
+          ENABLE_RCLONE="${{ github.event.inputs.enable_rclone }}"
+          [ -z "$ENABLE_RCLONE" ] && ENABLE_RCLONE="false"
+
+          ENABLE_PIXELDRAIN="${{ github.event.inputs.enable_pixeldrain }}"
+          [ -z "$ENABLE_PIXELDRAIN" ] && ENABLE_PIXELDRAIN="true"
+
+          ENABLE_MOD_UPLOADROM="${{ github.event.inputs.enable_mod_uploadrom }}"
+          [ -z "$ENABLE_MOD_UPLOADROM" ] && ENABLE_MOD_UPLOADROM="true"
+
+          ENABLE_FONT_LOGIC="${{ github.event.inputs.enable_font_logic }}"
+          [ -z "$ENABLE_FONT_LOGIC" ] && ENABLE_FONT_LOGIC="true"
+
+          ENABLE_UPDATE_STATUS="${{ github.event.inputs.enable_update_status }}"
+          [ -z "$ENABLE_UPDATE_STATUS" ] && ENABLE_UPDATE_STATUS="true"
+
+          ENABLE_INJECT_PACKAGES="${{ github.event.inputs.enable_inject_packages }}"
+          [ -z "$ENABLE_INJECT_PACKAGES" ] && ENABLE_INJECT_PACKAGES="true"
+
+          ENABLE_MOD_PACKROM="${{ github.event.inputs.enable_mod_packrom }}"
+          [ -z "$ENABLE_MOD_PACKROM" ] && ENABLE_MOD_PACKROM="true"
+
+          ENABLE_SYNC_VBPATCHER="${{ github.event.inputs.enable_sync_vbpatcher }}"
+          [ -z "$ENABLE_SYNC_VBPATCHER" ] && ENABLE_SYNC_VBPATCHER="true"
+
+          ENABLE_SYNC_DISABLEAVB="${{ github.event.inputs.enable_sync_disableavb }}"
+          [ -z "$ENABLE_SYNC_DISABLEAVB" ] && ENABLE_SYNC_DISABLEAVB="true"
+
+          ENABLE_SYNC_FETCHINFO="${{ github.event.inputs.enable_sync_fetchinfo }}"
+          [ -z "$ENABLE_SYNC_FETCHINFO" ] && ENABLE_SYNC_FETCHINFO="true"
+
+          ENABLE_SYNC_DEBLOAT="${{ github.event.inputs.enable_sync_debloat }}"
+          [ -z "$ENABLE_SYNC_DEBLOAT" ] && ENABLE_SYNC_DEBLOAT="true"
+
+          echo "🚀 Kích hoạt mod-repo.yml với các tham số cấu hình..."
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/BEACHEADVN/nothingsvn_xiaomi-stocktoolbuild/dispatches \
+            -d "{
+              \"event_type\": \"tracker_trigger\",
+              \"client_payload\": {
+                \"enable_sync_resources\": $ENABLE_SYNC_RESOURCES,
+                \"enable_rclone\": $ENABLE_RCLONE,
+                \"enable_pixeldrain\": $ENABLE_PIXELDRAIN,
+                \"enable_mod_uploadrom\": $ENABLE_MOD_UPLOADROM,
+                \"enable_font_logic\": $ENABLE_FONT_LOGIC,
+                \"enable_update_status\": $ENABLE_UPDATE_STATUS,
+                \"enable_inject_packages\": $ENABLE_INJECT_PACKAGES,
+                \"enable_mod_packrom\": $ENABLE_MOD_PACKROM,
+                \"enable_sync_vbpatcher\": $ENABLE_SYNC_VBPATCHER,
+                \"enable_sync_disableavb\": $ENABLE_SYNC_DISABLEAVB,
+                \"enable_sync_fetchinfo\": $ENABLE_SYNC_FETCHINFO,
+                \"enable_sync_debloat\": $ENABLE_SYNC_DEBLOAT
+              }
+            }"
+          
+          echo "⏳ Đợi 10 giây để GitHub khởi tạo run ID..."
+          sleep 10
+          
+          REPO="BEACHEADVN/nothingsvn_xiaomi-stocktoolbuild"
+          echo "🔍 Đang theo dõi tiến độ chạy của mod-repo.yml..."
+          
+          while true; do
+            RUN_INFO=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/$REPO/actions/workflows/mod-repo.yml/runs?per_page=1)
+            
+            STATUS=$(echo "$RUN_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['workflow_runs'][0]['status'])")
+            CONCLUSION=$(echo "$RUN_INFO" | python3 -c "import sys, json; res = json.load(sys.stdin)['workflow_runs'][0]['conclusion']; print(res if res else 'None')")
+            
+            echo "📊 Trạng thái hiện tại: $STATUS | Kết quả: $CONCLUSION"
+            
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "✅ mod-repo.yml đã hoàn thành THÀNH CÔNG!"
+                break
+              else
+                echo "❌ mod-repo.yml chạy THẤT BẠI. Dừng workflow tracker để tránh lỗi."
+                exit 1
+              fi
+            fi
+            
+            echo "💤 Vẫn đang chạy, đợi thêm 5 giây..."
+            sleep 5
+          done
+
+# JOB 2: Quét matrix Tracker trên repository Multi-Download hiện tại
+  update:
+    needs: sync-and-prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device: POCOF8Ultra
+            codename: myron
+            region: Europe
+            output: pocof8ultra.json
+          - device: REDMIK90ProMax
+            codename: myron
+            region: China
+            output: redmik90promax.json
+
+    steps:
+      - name: Checkout Current Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install telethon
+          fi
+
+      - name: Restore Telegram Session
+        env:
+          TELEGRAM_SESSION: ${{ secrets.TELEGRAM_SESSION }}
+        run: |
+          if [ -z "$TELEGRAM_SESSION" ]; then
+            echo "Missing TELEGRAM_SESSION secret"
+            exit 1
+          fi
+          printf "%s" "$TELEGRAM_SESSION" | base64 -d > telegram_session.session
+
+      - name: Create config.json
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+        run: |
+          cat > config.json <<EOF
+          {
+            "api_id": ${API_ID},
+            "api_hash": "${API_HASH}",
+            "channel": "TECH_MUKUL",
+            "search_limit": 30,
+            "output_dir": "output"
+          }
+          EOF
+
+      - name: Run tracker
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+        run: |
+          python .github/workflows/telegram/hyperos.py \
+            --device "${{ matrix.device }}" \
+            --codename "${{ matrix.codename }}" \
+            --region "${{ matrix.region }}" \
+            --output "${{ matrix.output }}"
+
+      - name: Trigger Build in Xiaomi-Stocktoolbuild Repo
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          ROM_URL=$(python3 -c "import json; print(json.load(open('${{ matrix.output }}'))['downloads']['recovery']['official'])")
+          DEVICE_NAME="${{ matrix.device }}"
+          
+          IS_FORCE_BUILD="${{ github.event.inputs.force_build }}"
+          if [ -z "$IS_FORCE_BUILD" ]; then
+            IS_FORCE_BUILD="false"
+          fi
+          
+          if [ "$ROM_URL" != "None" ] && [ ! -z "$ROM_URL" ]; then
+            echo "🚀 Triggering target repository for $DEVICE_NAME"
+            echo "ROM URL: $ROM_URL"
+            echo "Force Build Status: $IS_FORCE_BUILD"
+            
+            curl -L \
+              -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              https://api.github.com/repos/BEACHEADVN/nothingsvn_xiaomi-stocktoolbuild/dispatches \
+              -d "{\"event_type\":\"trigger_from_tracker\",\"client_payload\":{\"device\":\"$DEVICE_NAME\",\"rom_url\":\"$ROM_URL\",\"force_build\":$IS_FORCE_BUILD}}"
+          else
+            echo "No ROM URL found. Skip trigger."
+          fi
+
+      - name: Commit and Push changes (Multi-Download Repo)
+        run: |
+          if git diff --quiet; then
+            echo "No changes in Multi-Download repo"
+            exit 0
+          fi
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${{ matrix.output }}"
+          git commit -m "Auto update HyperOS JSON logs [${{ matrix.device }}]"
+          
+          for i in {1..5}; do
+            echo "Attempt $i: Pulling latest changes and pushing..."
+            git pull --rebase origin main
+            if git push; then
+              echo "✅ Đẩy log thành công!"
+              exit 0
+            fi
+            echo "⚠️ Tranh chấp Git xảy ra, thử lại sau 5 giây..."
+            sleep 5
+          done
+          echo "❌ Không thể push log sau nhiều lần thử."
+          exit 1
