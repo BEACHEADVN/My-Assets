@@ -444,6 +444,47 @@ jobs:
             echo "✅ Đã cập nhật fetchINFO.sh thành công!"
           fi
 
+      - name: Sync unique lines from debloat-list.txt to APPLIST.txt
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: bash
+        run: |
+          TARGET_FILE="./bin/ddevice/DEBLOAT/APPLIST.txt"
+          TEMP_REMOTE="/tmp/debloat-list.txt"
+          RAW_URL="https://raw.githubusercontent.com/BEACHEADVN/My-Assets/main/ROM/repo/debloat-list.txt"
+
+          mkdir -p "./bin/ddevice/DEBLOAT"
+
+          # Tạo file APPLIST.txt nếu chưa tồn tại
+          [ ! -f "$TARGET_FILE" ] && touch "$TARGET_FILE"
+
+          # Tải danh sách từ My-Assets về
+          curl -s -H "Authorization: token $GH_TOKEN" -L "$RAW_URL" -o "$TEMP_REMOTE"
+
+          ADDED_COUNT=0
+
+          # Đọc từng dòng từ debloat-list.txt
+          while IFS= read -r line || [ -n "$line" ]; do
+            # Bỏ qua các dòng trống hoặc comment (nếu có)
+            line_clean=$(echo "$line" | tr -d '\r\n')
+            [ -z "$line_clean" ] && continue
+
+            # Kiểm tra xem dòng này đã có trong APPLIST.txt chưa
+            if ! grep -qxF "$line_clean" "$TARGET_FILE"; then
+              echo "$line_clean" >> "$TARGET_FILE"
+              echo "➕ Thêm ứng dụng mới: $line_clean"
+              ADDED_COUNT=$((ADDED_COUNT + 1))
+            fi
+          done < "$TEMP_REMOTE"
+
+          rm -f "$TEMP_REMOTE"
+
+          if [ $ADDED_COUNT -eq 0 ]; then
+            echo "✅ Tất cả các dòng trong debloat-list.txt đều đã có sẵn trong APPLIST.txt."
+          else
+            echo "🎉 Đã thêm thành công $ADDED_COUNT dòng mới vào APPLIST.txt!"
+          fi
+
       - name: Push changes to Repository
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -452,13 +493,13 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           # Hợp thức hóa các file đã chỉnh sửa
-          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh ./bin/vbpatcher.py ./bin/package/DISABLE_AVB/DISABLEavb.sh ./bin/ddevice/fetchINFO.sh
+          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh ./bin/vbpatcher.py ./bin/package/DISABLE_AVB/DISABLEavb.sh ./bin/ddevice/fetchINFO.sh ./bin/ddevice/DEBLOAT/APPLIST.txt
           
           if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, update scripts, sync vbpatcher.py, DISABLEavb.sh and fetchINFO.sh" || echo "Không có thay đổi để commit"
+          git commit -m "Automated: Sync steps, fetchINFO.sh and update APPLIST.txt" || echo "Không có thay đổi để commit"
           
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin main
