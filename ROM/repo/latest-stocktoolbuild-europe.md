@@ -1,10 +1,10 @@
 # 📦 Build Status
 
-- **Tên ROM:** `HyperOS_v1.2_MYRONEEAGlobal_OS3.0.301.0.WPMEUXM_727db_Official.zip`
-- **Trạng thái:** `success`
-- **Commit:** `d40f282`
+- **Tên ROM:** `Unknown`
+- **Trạng thái:** `cancelled`
+- **Commit:** `88919b9`
 - **Link rom gốc:** [Click vào đây để tải ROM gốc](https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.301.0.WPMEUXM/myron_eea_global-ota_full-OS3.0.301.0.WPMEUXM-user-16.0-aa3aa56260.zip)
 
 ### ⬇️ Pixeldrain Download
 - **Cắt file:** `false`
-- **Link tải:** [https://pixeldrain.com/u/owo7hnAu](https://pixeldrain.com/u/owo7hnAu)
+- **Link tải:** N/A
