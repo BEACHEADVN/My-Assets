@@ -477,7 +477,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh ./bin/vbpatcher.py ./bin/package/DISABLE_AVB/DISABLEavb.sh ./bin/ddevice/fetchINFO.sh ./bin/ddevice/DEBLOAT/APPLIST.txt
+          git add .github/workflows/build.yml uploadROM.sh ./bin/modfile/UpdateFile/Fonts/update.sh packROM.sh ./bin/vbpatcher.py ./bin/package/DISABLE_AVB/DISABLEavb.sh ./bin/ddevice/fetchINFO.sh ./bin/ddevice/DEBLOAT/APPLIST.txt ./bin/ddevice/genInstall.sh
           
           if [ "${{ env.SHOULD_PUSH_RESOURCES }}" = "1" ]; then
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
