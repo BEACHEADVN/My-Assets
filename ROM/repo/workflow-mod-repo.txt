@@ -19,7 +19,7 @@ jobs:
 
       # Step processing resource checks and copying (Boot & Fonts detailed)
       - name: Sync Resources (Boot and Specific Fonts)
-        if: ${{ github.event.client_payload.enable_sync_resources != false }}
+        if: ${{ github.event.client_payload.enable_sync_resources != true }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -78,7 +78,7 @@ jobs:
           fi
 
       - name: Inject Rclone Step
-        if: ${{ github.event.client_payload.enable_rclone == true }}
+        if: ${{ github.event.client_payload.enable_rclone == false }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -125,7 +125,7 @@ jobs:
           EOF
 
       - name: Inject Pixeldrain Step
-        if: ${{ github.event.client_payload.enable_pixeldrain != false }}
+        if: ${{ github.event.client_payload.enable_pixeldrain != true }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -172,7 +172,7 @@ jobs:
           EOF
 
       - name: Modify uploadROM.sh Script
-        if: ${{ github.event.client_payload.enable_mod_uploadrom != false }}
+        if: ${{ github.event.client_payload.enable_mod_uploadrom != true }}
         shell: bash
         run: |
           if [ -f ./uploadROM.sh ]; then
@@ -201,7 +201,7 @@ jobs:
           fi
 
       - name: Fetch and Inject Font Logic from GitHub
-        if: ${{ github.event.client_payload.enable_font_logic != false }}
+        if: ${{ github.event.client_payload.enable_font_logic != true }}
         shell: bash
         run: |
           FONT_SCRIPT="./bin/modfile/UpdateFile/Fonts/update.sh"
@@ -230,7 +230,7 @@ jobs:
           fi
 
       - name: Inject Update Toolbuild Status Step
-        if: ${{ github.event.client_payload.enable_update_status != false }}
+        if: ${{ github.event.client_payload.enable_update_status != true }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -294,7 +294,7 @@ jobs:
           EOF
 
       - name: Inject Packages into build.yml
-        if: ${{ github.event.client_payload.enable_inject_packages != false }}
+        if: ${{ github.event.client_payload.enable_inject_packages != true }}
         run: |
           python3 - << 'EOF'
           import os
@@ -346,7 +346,7 @@ jobs:
           EOF
 
       - name: Modify packROM.sh Script
-        if: ${{ github.event.client_payload.enable_mod_packrom != false }}
+        if: ${{ github.event.client_payload.enable_mod_packrom != true }}
         shell: bash
         run: |
           if [ -f ./packROM.sh ]; then
@@ -358,7 +358,7 @@ jobs:
           fi
 
       - name: Check and Sync vbpatcher.py
-        if: ${{ github.event.client_payload.enable_sync_vbpatcher != false }}
+        if: ${{ github.event.client_payload.enable_sync_vbpatcher != true }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -377,7 +377,7 @@ jobs:
           fi
 
       - name: Check and Sync DISABLEavb.sh
-        if: ${{ github.event.client_payload.enable_sync_disableavb != false }}
+        if: ${{ github.event.client_payload.enable_sync_disableavb != true }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -397,7 +397,7 @@ jobs:
           fi
 
       - name: Check and Sync fetchINFO.sh
-        if: ${{ github.event.client_payload.enable_sync_fetchinfo != false }}
+        if: ${{ github.event.client_payload.enable_sync_fetchinfo != true }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -417,7 +417,7 @@ jobs:
           fi
 
       - name: Sync unique lines from debloat-list.txt to APPLIST.txt
-        if: ${{ github.event.client_payload.enable_sync_debloat != false }}
+        if: ${{ github.event.client_payload.enable_sync_debloat != true }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
