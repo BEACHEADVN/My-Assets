@@ -19,7 +19,7 @@ jobs:
 
       # Step processing resource checks and copying (Boot & Fonts detailed)
       - name: Sync Resources (Boot and Specific Fonts)
-        if: ${{ github.event.client_payload.enable_sync_resources != true }}
+        if: ${{ github.event.client_payload.enable_sync_resources != 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -78,7 +78,7 @@ jobs:
           fi
 
       - name: Inject Rclone Step
-        if: ${{ github.event.client_payload.enable_rclone == false }}
+        if: ${{ github.event.client_payload.inject_options.enable_rclone == true || inputs.enable_rclone == true }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -125,7 +125,7 @@ jobs:
           EOF
 
       - name: Inject Pixeldrain Step
-        if: ${{ github.event.client_payload.enable_pixeldrain != true }}
+        if: ${{ github.event.client_payload.enable_pixeldrain != 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -172,7 +172,7 @@ jobs:
           EOF
 
       - name: Modify uploadROM.sh Script
-        if: ${{ github.event.client_payload.enable_mod_uploadrom != true }}
+        if: ${{ github.event.client_payload.enable_mod_uploadrom != 'false' }}
         shell: bash
         run: |
           if [ -f ./uploadROM.sh ]; then
@@ -201,7 +201,7 @@ jobs:
           fi
 
       - name: Fetch and Inject Font Logic from GitHub
-        if: ${{ github.event.client_payload.enable_font_logic != true }}
+        if: ${{ github.event.client_payload.enable_font_logic != 'false' }}
         shell: bash
         run: |
           FONT_SCRIPT="./bin/modfile/UpdateFile/Fonts/update.sh"
@@ -230,7 +230,7 @@ jobs:
           fi
 
       - name: Inject Update Toolbuild Status Step
-        if: ${{ github.event.client_payload.enable_update_status != true }}
+        if: ${{ github.event.client_payload.enable_update_status != 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -294,7 +294,7 @@ jobs:
           EOF
 
       - name: Inject Packages into build.yml
-        if: ${{ github.event.client_payload.enable_inject_packages != true }}
+        if: ${{ github.event.client_payload.enable_inject_packages != 'false' }}
         run: |
           python3 - << 'EOF'
           import os
@@ -346,7 +346,7 @@ jobs:
           EOF
 
       - name: Modify packROM.sh Script
-        if: ${{ github.event.client_payload.enable_mod_packrom != true }}
+        if: ${{ github.event.client_payload.enable_mod_packrom != 'false' }}
         shell: bash
         run: |
           if [ -f ./packROM.sh ]; then
@@ -358,7 +358,7 @@ jobs:
           fi
 
       - name: Check and Sync vbpatcher.py
-        if: ${{ github.event.client_payload.enable_sync_vbpatcher != true }}
+        if: ${{ github.event.client_payload.enable_sync_vbpatcher != 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -377,7 +377,7 @@ jobs:
           fi
 
       - name: Check and Sync DISABLEavb.sh
-        if: ${{ github.event.client_payload.enable_sync_disableavb != true }}
+        if: ${{ github.event.client_payload.enable_sync_disableavb != 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -397,7 +397,7 @@ jobs:
           fi
 
       - name: Check and Sync fetchINFO.sh
-        if: ${{ github.event.client_payload.enable_sync_fetchinfo != true }}
+        if: ${{ github.event.client_payload.enable_sync_fetchinfo != 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -417,7 +417,7 @@ jobs:
           fi
 
       - name: Sync unique lines from debloat-list.txt to APPLIST.txt
-        if: ${{ github.event.client_payload.enable_sync_debloat != true }}
+        if: ${{ github.event.client_payload.enable_sync_debloat != 'false' }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         shell: bash
@@ -454,16 +454,16 @@ jobs:
           fi
 
       - name: Patch genInstall.sh
-        if: ${{ github.event.client_payload.enable_patch_geninstall != true }}
+        if: ${{ github.event.client_payload.enable_patch_geninstall != 'false' }}
         shell: bash
         run: |
           FILE="./bin/ddevice/genInstall.sh"
-      
+        
           if grep -q '^#chinh-sua-genInstall.sh$' "$FILE"; then
             echo "Already patched."
             exit 0
           fi
-      
+        
           perl -0pi -e 's/device_code=\$\(cat \$work_dir\/bin\/ddevice\/device_code\.txt 2>\/dev\/null\)/device_code=\$\(cat \$work_dir\/bin\/ddevice\/device_code.txt 2>\/dev\/null\)\n\ncodename="\$device_code"\nfor s in EEAGlobal EEAGLOBAL Global GLOBAL EEA IN RU TR TW ID JP KR; do\n    codename="\${codename%\$s}"\ndone/s' "$FILE"
           sed -i 's/"Codename": "${device_code}"/"Codename": "${codename}"/' "$FILE"
           sed -i '1i #chinh-sua-genInstall.sh' "$FILE"
