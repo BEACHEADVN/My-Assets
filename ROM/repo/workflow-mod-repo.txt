@@ -454,20 +454,19 @@ jobs:
           fi
 
       - name: Patch genInstall.sh
-        if: ${{ github.event.client_payload.enable_patch_geninstall != false }}
+        if: ${{ github.event.client_payload.enable_patch_geninstall != true }}
         shell: bash
         run: |
           FILE="./bin/ddevice/genInstall.sh"
       
-          if grep -q 'codename="$device_code"' "$FILE"; then
+          if grep -q '^#chinh-sua-genInstall.sh$' "$FILE"; then
             echo "Already patched."
             exit 0
           fi
       
           perl -0pi -e 's/device_code=\$\(cat \$work_dir\/bin\/ddevice\/device_code\.txt 2>\/dev\/null\)/device_code=\$\(cat \$work_dir\/bin\/ddevice\/device_code.txt 2>\/dev\/null\)\n\ncodename="\$device_code"\nfor s in EEAGlobal EEAGLOBAL Global GLOBAL EEA IN RU TR TW ID JP KR; do\n    codename="\${codename%\$s}"\ndone/s' "$FILE"
-
           sed -i 's/"Codename": "${device_code}"/"Codename": "${codename}"/' "$FILE"
-      
+          sed -i '1i #chinh-sua-genInstall.sh' "$FILE"
           echo "Patched genInstall.sh successfully."
 
       - name: Push changes to Repository
