@@ -1,10 +1,10 @@
 # 📦 Build Status
 
-- **Tên ROM:** `HyperOS_v1.2_MYRON_OS3.0.308.0.WPMCNXM_509bb_Official.zip`
-- **Trạng thái:** `success`
+- **Tên ROM:** `Unknown`
+- **Trạng thái:** `failure`
 - **Commit:** `e71fc6d`
-- **Link rom gốc:** [Click vào đây để tải ROM gốc](https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS3.0.308.0.WPMCNXM/myron-ota_full-OS3.0.308.0.WPMCNXM-user-16.0-96c19b140b.zip)
+- **Link rom gốc:** [Click vào đây để tải ROM gốc](https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS4.0.0.15.XPMCNXM/myron-ota_full-OS4.0.0.15.XPMCNXM-user-17.0-142c9b0a24.zip)
 
 ### ⬇️ Pixeldrain Download
 - **Cắt file:** `false`
-- **Link tải:** [https://pixeldrain.com/u/81mqg82k](https://pixeldrain.com/u/81mqg82k)
+- **Link tải:** N/A
