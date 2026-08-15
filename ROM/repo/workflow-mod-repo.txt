@@ -474,7 +474,7 @@ jobs:
         run: |
           if [ -f ./functions.sh ]; then
             echo "📝 Tiến hành cập nhật hàm extract_partition trong ./functions.sh..."
-            sed -i 's|extract.erofs -x -i ${part_img} -o ${target_dir}/${part_name%.*}|extract.erofs -x -i ${part_img} -o ${target_dir}|g' ./functions.sh
+            sed -i 's|extract.erofs -x -i ${part_img} -o ${target_dir}/${part_name%.*}|extract.erofs -x -i ${part_img} -o ${target_dir} > /dev/null 2>\&1|g' ./functions.sh
             echo "✅ Đã cập nhật đường dẫn xả EROFS thành công!"
           else
             echo "⚠️ Không tìm thấy file ./functions.sh."
