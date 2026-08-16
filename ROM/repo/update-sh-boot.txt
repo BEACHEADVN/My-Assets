@@ -44,6 +44,29 @@ elif [[ $rom_os == "OS3" ]] && [[ $androidVer -le "16" ]];then
     else
         echo " -> ❌ Không tìm thấy bootaudio.mp3 trong thư mục Boot!"
     fi
+
+elif [[ $rom_os == "OS4" ]] && [[ $androidVer -le "17" ]];then
+    mods "Detect HyperOS OS3! Copying files..."
+    
+    # Đảm bảo thư mục đích product/media tồn tại
+    mkdir -p "$MEDIA_TARGET"
+
+    # Kiểm tra và copy file bootanimation.zip kèm log
+    if [ -f "$BOOT_SOURCE/bootanimation.zip" ]; then
+        cp -rf "$BOOT_SOURCE/bootanimation.zip" "$MEDIA_TARGET/"
+        echo " -> [Boot Media] Copied bootanimation.zip thành công!"
+    else
+        echo " -> ❌ Không tìm thấy bootanimation.zip trong thư mục Boot!"
+    fi
+
+    # Kiểm tra và copy file bootaudio.mp3 kèm log
+    if [ -f "$BOOT_SOURCE/bootaudio.mp3" ]; then
+        cp -rf "$BOOT_SOURCE/bootaudio.mp3" "$MEDIA_TARGET/"
+        echo " -> [Boot Media] Copied bootaudio.mp3 thành công!"
+    else
+        echo " -> ❌ Không tìm thấy bootaudio.mp3 trong thư mục Boot!"
+    fi
+
 fi
 
-mods "Done"
+mods "Boot Done"
