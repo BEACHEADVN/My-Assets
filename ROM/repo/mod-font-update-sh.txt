@@ -28,4 +28,12 @@ if [[ $rom_os == "OS3" ]] && [[ $androidVer -le "16" ]]; then
     copy_bauhaus_from_list "$FONT_SOURCE/system_fonts.list" "$SYS_TARGET" "System"
     copy_bauhaus_from_list "$FONT_SOURCE/product_fonts.list" "$PROD_TARGET" "Product"
 fi
+
+# Thực thi lệnh copy danh sách font bắt buộc cho OS4 (áp dụng mọi vùng miền)
+if [[ $rom_os == "OS4" ]] && [[ $androidVer -le "17" ]]; then
+    mods "Force processing Font List for OS3..."
+    copy_bauhaus_from_list "$FONT_SOURCE/system_fonts.list" "$SYS_TARGET" "System"
+    copy_bauhaus_from_list "$FONT_SOURCE/product_fonts.list" "$PROD_TARGET" "Product"
+fi
+
 # ======================================================================
