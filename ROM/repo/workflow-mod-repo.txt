@@ -470,6 +470,7 @@ jobs:
           echo "Patched genInstall.sh successfully."
 
       - name: Modify functions.sh Script
+        if: ${{ github.event.client_payload.enable_patch_geninstall != 'false' }}
         shell: bash
         run: |
           if [ -f ./functions.sh ]; then
