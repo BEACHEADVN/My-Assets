@@ -494,7 +494,13 @@ jobs:
             git add ./bin/modfile/UpdateFile/Boot/ ./bin/modfile/UpdateFile/Fonts/HyperOS/
           fi
           
-          git commit -m "Automated: Sync steps, fetchINFO.sh and update APPLIST.txt" || echo "No changes to commit"
-          
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
-          git push origin main
+          # Lấy danh sách tên file ngắn gọn (basename) có thay đổi
+          FILES=$(git status --porcelain | awk '{print $2}' | xargs -n1 basename | sort -u | paste -sd ", " -)
+
+          if [ -n "$FILES" ]; then
+            git commit -m "Update $FILES"
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
